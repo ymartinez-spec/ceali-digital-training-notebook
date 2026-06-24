@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRegistrationsForCsv } from "@/db/queries";
 import { isAdminAuthorized } from "@/lib/request";
 
+export const runtime = "nodejs";
+
 function csvEscape(value: unknown) {
   const text = value === null || value === undefined ? "" : String(value);
   return `"${text.replaceAll('"', '""')}"`;

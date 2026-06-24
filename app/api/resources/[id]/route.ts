@@ -1,7 +1,9 @@
+import { readFile } from "node:fs/promises";
+import { join, normalize } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
-import { recordEvent } from "@/db/queries";
 import { findResource } from "@/lib/resources";
-import { getClientDetails } from "@/lib/request";
+
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -9,6 +11,18 @@ type RouteContext = {
 
 function fileNameFromHref(href: string) {
   return href.split("/").pop() ?? "ceali-resource.pdf";
+}
+
+function localPublicPath(href: string) {
+  const cleanHref = href.replace(/^\/+/, "");
+  const resolved = normalize(join(process.cwd(), "public", cleanHref));
+  const publicRoot = normalize(join(process.cwd(), "public"));
+
+  if (!resolved.startsWith(publicRoot)) {
+    throw new Error("Invalid resource path.");
+  }
+
+  return resolved;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -26,29 +40,28 @@ export async function GET(request: NextRequest, context: RouteContext) {
     request.nextUrl.searchParams.get("action") === "download"
       ? "download"
       : "view";
-  const { ipAddress, userAgent } = getClientDetails(request);
-  await recordEvent({
-    action,
-    eventType: "resource",
-    ipAddress,
-    resourceId: resource.id,
-    sessionId: request.nextUrl.searchParams.get("sessionId") ?? undefined,
-    userAgent,
-  });
 
-  const assetResponse = await fetch(new URL(resource.href, request.url));
-  if (!assetResponse.ok || !assetResponse.body) {
+  try {
+    const bytes = await readFile(localPublicPath(resource.href));
+    return new NextResponse(bytes, {
+      headers: {
+        "Cache-Control": "public, max-age=3600",
+        "Content-Disposition": `${
+          action === "download" ? "attachment" : "inline"
+        }; filename="${fileNameFromHref(resource.href)}"`,
+        "Content-Type": "application/pdf",
+      },
+    });
+  } catch {
+    const driveUrl =
+      action === "download" ? resource.driveDownloadUrl : resource.driveViewUrl;
+    if (driveUrl) {
+      return NextResponse.redirect(driveUrl);
+    }
+
     return NextResponse.json(
-      { error: "Resource file is unavailable." },
+      { error: "Resource file is unavailable. Check the Google Drive file ID or local PDF path." },
       { status: 404 },
     );
   }
-
-  return new NextResponse(assetResponse.body, {
-    headers: {
-      "Cache-Control": "public, max-age=3600",
-      "Content-Disposition": `${action === "download" ? "attachment" : "inline"}; filename="${fileNameFromHref(resource.href)}"`,
-      "Content-Type": "application/pdf",
-    },
-  });
 }

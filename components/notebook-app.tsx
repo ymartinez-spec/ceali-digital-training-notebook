@@ -3,10 +3,9 @@
 import Image from "next/image";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { ResourceItem } from "@/lib/resources";
+import type { NotebookSettings, ResourceItem } from "@/lib/resources";
 import {
   ArrowRightIcon,
-  ChartIcon,
   DownloadIcon,
   EyeIcon,
   HeartIcon,
@@ -18,6 +17,7 @@ import {
 type NotebookAppProps = {
   appendixResources: ResourceItem[];
   handoutResources: ResourceItem[];
+  notebookSettings: NotebookSettings;
 };
 
 type RegistrationForm = {
@@ -29,13 +29,13 @@ type RegistrationForm = {
   consent: boolean;
 };
 
-type AnalyticsData = {
-  visitors: number;
-  registrations: number;
-  downloads: number;
-  views: number;
-  topDownloads: Array<{ resourceId: string; count: number; title: string }>;
-};
+type CategoryFilter = "all" | "template" | "handout" | "appendix";
+
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
 const blankForm: RegistrationForm = {
   firstName: "",
@@ -115,14 +115,23 @@ function resourceMatches(resource: ResourceItem, query: string) {
   return haystack.includes(query.trim().toLowerCase());
 }
 
+function trackEvent(eventName: string, params: Record<string, string>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.gtag?.("event", eventName, params);
+}
+
 function ResourceCard({
   resource,
   favorite,
   onToggleFavorite,
+  onTrackAction,
 }: {
   resource: ResourceItem;
   favorite: boolean;
   onToggleFavorite: (id: string) => void;
+  onTrackAction: (resource: ResourceItem, action: "view" | "download") => void;
 }) {
   return (
     <article className="resource-card">
@@ -160,6 +169,7 @@ function ResourceCard({
           <a
             className="button button-light"
             href={`/api/resources/${resource.id}?action=view`}
+            onClick={() => onTrackAction(resource, "view")}
             rel="noreferrer"
             target="_blank"
           >
@@ -169,6 +179,7 @@ function ResourceCard({
           <a
             className="button button-dark"
             href={`/api/resources/${resource.id}?action=download`}
+            onClick={() => onTrackAction(resource, "download")}
           >
             <DownloadIcon size={17} />
             Download
@@ -186,8 +197,11 @@ function ResourceSection({
   query,
   resources,
   title,
+  categoryFilter,
   onToggleFavorite,
+  onTrackAction,
 }: {
+  categoryFilter: CategoryFilter;
   countLabel: string;
   favoriteIds: Set<string>;
   id: string;
@@ -195,8 +209,13 @@ function ResourceSection({
   resources: ResourceItem[];
   title: string;
   onToggleFavorite: (id: string) => void;
+  onTrackAction: (resource: ResourceItem, action: "view" | "download") => void;
 }) {
-  const visible = resources.filter((resource) => resourceMatches(resource, query));
+  const visible = resources.filter(
+    (resource) =>
+      resourceMatches(resource, query) &&
+      (categoryFilter === "all" || resource.kind === categoryFilter),
+  );
 
   return (
     <section className="resource-section" id={id}>
@@ -210,6 +229,7 @@ function ResourceSection({
             favorite={favoriteIds.has(resource.id)}
             key={resource.id}
             onToggleFavorite={onToggleFavorite}
+            onTrackAction={onTrackAction}
             resource={resource}
           />
         ))}
@@ -224,6 +244,7 @@ function ResourceSection({
 export default function NotebookApp({
   appendixResources,
   handoutResources,
+  notebookSettings,
 }: NotebookAppProps) {
   const allResources = useMemo(
     () => [...handoutResources, ...appendixResources],
@@ -251,12 +272,12 @@ export default function NotebookApp({
   >(null);
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const favoriteIds = useMemo(
     () => parseFavorites(favoriteSnapshot),
     [favoriteSnapshot],
   );
   const [adminKey, setAdminKey] = useState("");
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [adminStatus, setAdminStatus] = useState("");
 
   useEffect(() => {
@@ -306,7 +327,11 @@ export default function NotebookApp({
       setForm(blankForm);
       setFormStatus({
         type: "success",
-        message: "Registration saved. Your notebook is ready.",
+        message:
+          "Registration saved. You are signed up for CEALI updates and your notebook is ready.",
+      });
+      trackEvent("registration_complete", {
+        organization: form.organization || "not provided",
       });
       setTimeout(() => {
         document.getElementById("notebook")?.scrollIntoView({ behavior: "smooth" });
@@ -324,23 +349,32 @@ export default function NotebookApp({
     }
   }
 
-  async function loadAnalytics() {
-    setAdminStatus("Loading analytics...");
-    try {
-      const response = await fetch(`/api/admin/analytics?key=${encodeURIComponent(adminKey)}`);
-      if (!response.ok) {
-        throw new Error("Admin key was not accepted.");
-      }
-      setAnalytics((await response.json()) as AnalyticsData);
-      setAdminStatus("Analytics loaded.");
-    } catch (error) {
-      setAdminStatus(error instanceof Error ? error.message : "Analytics failed.");
-    }
+  function trackResourceAction(
+    resource: ResourceItem,
+    action: "view" | "download",
+  ) {
+    trackEvent(action === "download" ? "resource_download" : "resource_view", {
+      resource_id: resource.id,
+      resource_title: resource.title,
+      resource_type: resource.kind,
+    });
   }
 
   const favoriteResources = allResources.filter((resource) =>
     favoriteIds.has(resource.id),
   );
+  const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
+  const googleDriveFolderUrl =
+    process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_URL ||
+    notebookSettings.googleDriveFolderUrl ||
+    "https://drive.google.com/";
+  const upcomingTrainingsUrl =
+    process.env.NEXT_PUBLIC_UPCOMING_TRAININGS_URL ||
+    notebookSettings.upcomingTrainingsUrl ||
+    "https://www.ceali.org";
+  const googleAnalyticsUrl =
+    process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_URL ||
+    "https://analytics.google.com/";
 
   return (
     <div className="app-shell">
@@ -368,24 +402,37 @@ export default function NotebookApp({
       <main>
         <section className="hero">
           <div className="hero-inner">
-            <div>
-              <p className="eyebrow">Conference Participant Access</p>
-              <h1>Having Tough Conversations</h1>
+            <div className="hero-main">
+              <div>
+                <p className="eyebrow">Conference Participant Access</p>
+                <h1>Having Tough Conversations</h1>
+              </div>
+              <p className="hero-copy">
+                Resource notebook for families of children who require additional
+                support, created for early childhood educators and child care
+                providers.
+              </p>
+              <div className="hero-actions">
+                <a className="button button-primary" href="#registration">
+                  Access Training Materials
+                  <ArrowRightIcon size={18} />
+                </a>
+                <a className="button button-light" href="https://www.ceali.org">
+                  CEALI Website
+                </a>
+              </div>
             </div>
-            <p className="hero-copy">
-              Resource notebook for families of children who require additional
-              support, created for early childhood educators and child care
-              providers.
-            </p>
-            <div className="hero-actions">
-              <a className="button button-primary" href="#registration">
-                Access Training Materials
-                <ArrowRightIcon size={18} />
-              </a>
-              <a className="button button-light" href="https://www.ceali.org">
-                CEALI Website
-              </a>
-            </div>
+            <aside className="hero-qr-card" aria-label="Conference QR code">
+              <Image
+                alt="QR code linking to the CEALI digital training notebook"
+                height={164}
+                src="/qr/ceali-notebook-qr.svg"
+                unoptimized
+                width={164}
+              />
+              <strong>Scan for materials</strong>
+              <span>Place this QR code on slides or signage for quick access.</span>
+            </aside>
           </div>
         </section>
 
@@ -523,6 +570,12 @@ export default function NotebookApp({
                   {formStatus.message}
                 </p>
               ) : null}
+              <p className="privacy-note">
+                Your information is collected to provide access to today&apos;s
+                training materials and to share future CEALI training
+                opportunities, resources, and professional development
+                offerings. You may unsubscribe at any time.
+              </p>
             </form>
           </div>
         </section>
@@ -551,6 +604,36 @@ export default function NotebookApp({
                     value={query}
                   />
                 </label>
+                <div className="segmented-filter" aria-label="Filter resources">
+                  {[
+                    ["all", "All"],
+                    ["template", "Templates"],
+                    ["handout", "Handouts"],
+                    ["appendix", "Appendix"],
+                  ].map(([value, label]) => (
+                    <button
+                      aria-pressed={categoryFilter === value}
+                      key={value}
+                      onClick={() => setCategoryFilter(value as CategoryFilter)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <a
+                  className="button button-dark"
+                  href={`/api/resources/${notebookSettings.fullHandoutPacket.id}?action=download`}
+                  onClick={() =>
+                    trackEvent("download_all_handouts", {
+                      resource_id: notebookSettings.fullHandoutPacket.id,
+                      resource_title: notebookSettings.fullHandoutPacket.title,
+                    })
+                  }
+                >
+                  <DownloadIcon size={17} />
+                  Download All
+                </a>
               </div>
             </div>
 
@@ -564,28 +647,34 @@ export default function NotebookApp({
             {hasNotebookAccess ? (
               <>
                 <ResourceSection
+                  categoryFilter={categoryFilter}
                   countLabel={`${handoutResources.length} files`}
                   favoriteIds={favoriteIds}
                   id="presentation-materials"
                   onToggleFavorite={toggleFavorite}
+                  onTrackAction={trackResourceAction}
                   query={query}
                   resources={handoutResources}
                   title="Presentation Materials"
                 />
                 <ResourceSection
+                  categoryFilter={categoryFilter}
                   countLabel={`${appendixResources.length} files`}
                   favoriteIds={favoriteIds}
                   id="appendix-resources"
                   onToggleFavorite={toggleFavorite}
+                  onTrackAction={trackResourceAction}
                   query={query}
                   resources={appendixResources}
                   title="Appendix Resources"
                 />
                 <ResourceSection
+                  categoryFilter={categoryFilter}
                   countLabel={`${favoriteResources.length} saved`}
                   favoriteIds={favoriteIds}
                   id="favorite-resources"
                   onToggleFavorite={toggleFavorite}
+                  onTrackAction={trackResourceAction}
                   query={query}
                   resources={favoriteResources}
                   title="Favorite Resources"
@@ -610,6 +699,20 @@ export default function NotebookApp({
                   CEALI Website
                 </strong>
                 <span>www.ceali.org</span>
+              </a>
+              <a className="resource-link" href={upcomingTrainingsUrl}>
+                <strong>
+                  <LinkIcon size={18} />
+                  Upcoming Trainings
+                </strong>
+                <span>Future CEALI events, courses, coaching, and professional development.</span>
+              </a>
+              <a className="resource-link" href={googleDriveFolderUrl}>
+                <strong>
+                  <LinkIcon size={18} />
+                  Google Drive Folder
+                </strong>
+                <span>Central storage folder for notebook PDFs and future updates.</span>
               </a>
               <a
                 className="resource-link"
@@ -660,8 +763,8 @@ export default function NotebookApp({
             <p className="section-kicker">Admin</p>
             <h2 className="section-title">Lead Management</h2>
             <p className="body-copy">
-              Export registrations and review visitor, registration, view, and
-              download activity.
+              Export registrations from Google Sheets and review visitor,
+              registration, view, and download activity in Google Analytics.
             </p>
             <div className="admin-grid">
               <label>
@@ -674,12 +777,24 @@ export default function NotebookApp({
                   value={adminKey}
                 />
               </label>
-              <button className="button button-light" onClick={loadAnalytics} type="button">
-                <ChartIcon size={17} />
-                Analytics
-              </button>
+              <a className="button button-light" href={googleAnalyticsUrl}>
+                <LinkIcon size={17} />
+                Open Analytics
+              </a>
+              {googleSheetUrl ? (
+                <a className="button button-light" href={googleSheetUrl}>
+                  <LinkIcon size={17} />
+                  Open Sheet
+                </a>
+              ) : null}
               <a
                 className="button button-dark"
+                onClick={(event) => {
+                  if (!adminKey) {
+                    event.preventDefault();
+                    setAdminStatus("Enter the admin export key before downloading CSV.");
+                  }
+                }}
                 href={`/api/admin/contacts.csv?key=${encodeURIComponent(adminKey)}`}
               >
                 <DownloadIcon size={17} />
@@ -687,36 +802,24 @@ export default function NotebookApp({
               </a>
             </div>
             {adminStatus ? <p className="form-message success">{adminStatus}</p> : null}
-            {analytics ? (
-              <>
-                <div className="analytics-grid">
-                  <div className="analytics-tile">
-                    <strong>{analytics.visitors}</strong>
-                    <span>Visitors</span>
-                  </div>
-                  <div className="analytics-tile">
-                    <strong>{analytics.registrations}</strong>
-                    <span>Registrations</span>
-                  </div>
-                  <div className="analytics-tile">
-                    <strong>{analytics.views}</strong>
-                    <span>Views</span>
-                  </div>
-                  <div className="analytics-tile">
-                    <strong>{analytics.downloads}</strong>
-                    <span>Downloads</span>
-                  </div>
-                </div>
-                <div className="download-list">
-                  {analytics.topDownloads.map((item) => (
-                    <div className="download-row" key={item.resourceId}>
-                      <span>{item.title}</span>
-                      <strong>{item.count}</strong>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
+            <div className="analytics-grid">
+              <div className="analytics-tile">
+                <strong>Sheets</strong>
+                <span>Registrations and CSV exports</span>
+              </div>
+              <div className="analytics-tile">
+                <strong>Drive</strong>
+                <span>PDF storage and replacements</span>
+              </div>
+              <div className="analytics-tile">
+                <strong>GA4</strong>
+                <span>Visitors, views, downloads</span>
+              </div>
+              <div className="analytics-tile">
+                <strong>Vercel</strong>
+                <span>Fast mobile delivery for 400+ attendees</span>
+              </div>
+            </div>
           </div>
         </section>
       </main>

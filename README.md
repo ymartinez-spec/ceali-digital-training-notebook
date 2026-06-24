@@ -1,199 +1,241 @@
-# CEALI Digital Resource Notebook
+# CEALI Digital Training Notebook
 
-Professional conference resource portal for **Having Tough Conversations with Families of Children Who Require Additional Support**.
+Professional Next.js resource portal for CEALI conference participants.
 
-## What Is Included
+Built with:
 
-- Landing page with CEALI branding, welcome copy, presenter bio, and call to action.
-- Required registration form with consent language.
-- Server-side registration storage in Cloudflare D1.
-- Optional Google Sheets or Airtable sync through `LEAD_WEBHOOK_URL`.
-- Searchable, mobile-responsive digital notebook.
-- Presentation Materials and Appendix Resources sections with view/download actions.
-- Favorite Resources saved in each participant's browser.
-- Admin CSV export.
-- Analytics for visitors, registrations, views, downloads, and most downloaded files.
-- Conference QR code at `public/qr/ceali-notebook-qr.svg`.
+- Next.js
+- Tailwind CSS
+- Google Sheets for registrations
+- Google Drive-ready PDF links
+- Google Analytics 4 event tracking
+- Vercel deployment
 
-## Source Document Note
+## What Participants Experience
 
-The provided files currently split into:
+1. They open the landing page from a QR code.
+2. They submit first name, last name, email, mobile phone, optional organization, and consent.
+3. Their information saves to Google Sheets.
+4. They immediately unlock the Digital Training Notebook.
+5. They can search, filter, favorite, view, download, or download all resources.
 
-- 17 top-level handout/template resources from `Tough_Conversations_Handouts_and_Templates.docx - Google Docs.pdf`.
-- 13 appendix resource cards from `Tough_Conversations_Appendix_Word_Banks.docx - Google Docs.pdf`.
+## Included Notebook Content
 
-The original appendix source contains 14 numbered sections; the final participant card combines “Strategies & Supports” with “Documentation Phrases & Sentence Starters” so the displayed appendix count matches the requested 13 documents while preserving all pages. The original request mentions 22 handouts; the provided handout packet contains 17 explicit top-level handout/template sections. The app is metadata-driven, so additional resources can be added or sections can be split in `lib/resources.ts` without changing the card UI.
+- 22 Presentation Handout cards
+- 13 Appendix Resource cards
+- Additional Resources area for CEALI website, upcoming trainings, Google Drive folder, Instagram, and contact information
+- QR code asset at `public/qr/ceali-notebook-qr.svg`
+
+Resource content is managed in:
+
+```text
+content/resources.json
+```
 
 ## Local Setup
 
-1. Install dependencies:
+Use Node 22+.
 
-   ```bash
-   npm install
-   ```
-
-2. Create a local environment file:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-3. Set a private admin key in `.env.local`:
-
-   ```bash
-   ADMIN_EXPORT_KEY=your-private-key
-   ```
-
-4. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-5. Build before launch:
-
-   ```bash
-   npm run build
-   ```
-
-## Lead Storage
-
-Cloudflare D1 is the built-in operational database. It stores:
-
-- Timestamp
-- First name
-- Last name
-- Email
-- Phone number
-- Organization
-- Consent
-
-To also send every submission to Google Sheets or Airtable, set `LEAD_WEBHOOK_URL` in the hosted runtime environment.
-
-### Google Sheets Webhook
-
-Create a Google Sheet with columns:
-
-`Timestamp, First Name, Last Name, Email, Phone Number, Organization, Consent`
-
-Use this Apps Script as a web app endpoint:
-
-```javascript
-function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = JSON.parse(e.postData.contents);
-
-  sheet.appendRow([
-    data.timestamp,
-    data.firstName,
-    data.lastName,
-    data.email,
-    data.phone,
-    data.organization || "",
-    data.consent ? "Yes" : "No"
-  ]);
-
-  return ContentService
-    .createTextOutput(JSON.stringify({ ok: true }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+```bash
+pnpm install
+pnpm run dev
 ```
 
-Deploy the Apps Script as a web app and set its URL as `LEAD_WEBHOOK_URL`.
+Open:
 
-### Airtable Webhook
+```text
+http://localhost:3000
+```
 
-Create an Airtable automation webhook that accepts the same JSON fields:
+Build check:
 
-`timestamp, firstName, lastName, email, phone, organization, consent`
+```bash
+pnpm run build
+pnpm run lint
+```
 
-Set the webhook URL as `LEAD_WEBHOOK_URL`.
+## Environment Variables
 
-## Exporting Contacts
+Copy `.env.example` to `.env.local` for local testing. Add the same variables in Vercel.
 
-Open the deployed site, go to **Admin**, enter `ADMIN_EXPORT_KEY`, and select **Export CSV**.
+Required for registrations:
 
-Direct CSV endpoint:
+```text
+ADMIN_EXPORT_KEY=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+GOOGLE_SHEET_ID=
+GOOGLE_SHEET_TAB_NAME=Registrations
+```
+
+Recommended public links:
+
+```text
+NEXT_PUBLIC_NOTEBOOK_URL=
+NEXT_PUBLIC_GOOGLE_SHEET_URL=
+NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_URL=
+NEXT_PUBLIC_GOOGLE_ANALYTICS_URL=https://analytics.google.com/
+NEXT_PUBLIC_GA_MEASUREMENT_ID=
+NEXT_PUBLIC_UPCOMING_TRAININGS_URL=https://www.ceali.org
+```
+
+Current live production URL:
+
+```text
+https://ceali-digital-training-notebook.vercel.app
+```
+
+Current Google assets:
+
+```text
+Google Sheet: https://docs.google.com/spreadsheets/d/1VVodUjabJLezHVroiysgnQU2Hte0lPw2nURM8QNHeu8
+Google Drive Folder: https://drive.google.com/drive/folders/1btpWPeXYqQU7ntfEK5djxsVElrhKoiAt
+```
+
+## Google Sheets Setup
+
+1. Create a Google Sheet named `CEALI Conference Registrations`.
+2. Create a tab named `Registrations`.
+3. Add this header row:
+
+```text
+Timestamp | First Name | Last Name | Email | Phone Number | Organization | Consent Status
+```
+
+4. In Google Cloud Console, create a project.
+5. Enable the Google Sheets API.
+6. Create a Service Account.
+7. Create a JSON key for the service account.
+8. Copy the service account email into `GOOGLE_SERVICE_ACCOUNT_EMAIL`.
+9. Copy the private key into `GOOGLE_PRIVATE_KEY`.
+10. Share the Google Sheet with the service account email as Editor.
+11. Copy the Sheet ID from the Google Sheet URL into `GOOGLE_SHEET_ID`.
+
+To view submissions, open the Google Sheet. To export contacts manually, use Google Sheets: **File > Download > Comma Separated Values (.csv)**.
+
+The app also provides CSV export:
 
 ```text
 /api/admin/contacts.csv?key=YOUR_ADMIN_EXPORT_KEY
 ```
 
-## Analytics
+## Google Drive PDF Setup
 
-The Admin panel shows:
+1. Create a Google Drive folder named `CEALI Digital Training Notebook`.
+2. Upload all handout and appendix PDFs.
+3. Set each PDF sharing to anyone with the link can view.
+4. Copy each file ID from its Drive URL.
 
-- Number of visitors
-- Number of registrations
-- Number of resource views
-- Number of downloads
-- Most downloaded resources
+Example Drive URL:
 
-The app records analytics in the D1 `analytics_events` table.
+```text
+https://drive.google.com/file/d/FILE_ID_HERE/view
+```
 
-## Updating Resources
+Paste `FILE_ID_HERE` into the matching item in `content/resources.json`:
 
-Resource cards are controlled by `lib/resources.ts`.
+```json
+{
+  "id": "template-01-general-child-observation",
+  "driveFileId": "FILE_ID_HERE"
+}
+```
 
-To replace a document:
+The app automatically creates Drive view and download URLs from `driveFileId`. Local PDFs in `public/resources/` remain as fallback files.
 
-1. Put the replacement PDF in `public/resources/handouts/` or `public/resources/appendix/`.
-2. Keep the same filename when possible.
-3. Regenerate the first-page preview image:
+## Updating Resources Without Coding
 
-   ```bash
-   /Users/yohimartinez/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/pdftoppm -png -singlefile -f 1 -l 1 -scale-to-x 640 -scale-to-y -1 public/resources/handouts/YOUR-FILE.pdf public/previews/handouts/YOUR-FILE
-   ```
+Open:
 
-4. Run `npm run build`.
+```text
+content/resources.json
+```
 
-To add a document:
+To update a card, edit:
 
-1. Add the PDF to `public/resources/handouts/` or `public/resources/appendix/`.
-2. Generate its preview image in the matching `public/previews/` folder.
-3. Add a new object in `handoutResources` or `appendixResources` in `lib/resources.ts`.
-
-Each resource object needs:
-
-- `id`
-- `kind`
 - `title`
 - `description`
 - `pages`
-- `href`
-- `preview`
 - `keywords`
+- `driveFileId`
+
+To replace a PDF:
+
+1. Upload the new PDF to Google Drive.
+2. Copy the new file ID.
+3. Replace `driveFileId` for that resource.
+4. Redeploy on Vercel.
+
+To update a preview image:
+
+1. Replace the image in `public/previews/handouts/` or `public/previews/appendix/`.
+2. Keep the filename listed in `content/resources.json`.
+3. Redeploy.
+
+## Google Analytics
+
+Create a GA4 property and web data stream.
+
+Add the measurement ID to Vercel:
+
+```text
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+Tracked events:
+
+- `registration_complete`
+- `resource_view`
+- `resource_download`
+- `download_all_handouts`
+
+Use Google Analytics reports to see visitors, registrations, most viewed resources, and most downloaded resources.
+
+## Vercel Deployment
+
+1. Push this project to GitHub.
+2. In Vercel, select **Add New Project**.
+3. Import the GitHub repository.
+4. Framework preset should be **Next.js**.
+5. Add all environment variables from `.env.example`.
+6. Deploy.
+7. Test one registration and one resource download.
+
+Recommended for 400+ attendees:
+
+- Vercel Hobby or Pro is fine for a conference resource portal.
+- PDFs should use Google Drive links for large public traffic.
+- Keep Google Sheet shared only with you and the service account.
 
 ## QR Code
 
-The QR code currently points to:
+Current QR target:
 
 ```text
-https://www.ceali.org/tough-conversations-notebook
+https://ceali-digital-training-notebook.vercel.app
 ```
 
-Regenerate it after choosing the final public URL:
+Regenerate after choosing the final Vercel or custom-domain URL:
 
 ```bash
 /Users/yohimartinez/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 scripts/generate_qr.py https://YOUR-FINAL-URL public/qr/ceali-notebook-qr.svg
 ```
 
-## Recommended Hosting
+Use the QR image in slides, handouts, signage, or emails.
 
-Use **Cloudflare Workers/Sites with D1** for this notebook.
+## Admin Checklist
 
-Why:
+Before the conference:
 
-- Static PDF assets and previews are served efficiently at the edge.
-- D1 stores registrations and analytics without a separate database server.
-- 400 simultaneous conference attendees is a modest workload for this architecture.
-- The app is already built for the Sites/Cloudflare Worker deployment target.
+- Confirm Google Sheet receives a test registration.
+- Confirm all Google Drive files open in an incognito/private browser.
+- Confirm the QR code points to the final live URL.
+- Confirm mobile layout on a phone.
+- Confirm Google Analytics receives test events.
+- Save the `ADMIN_EXPORT_KEY` somewhere secure.
 
-Recommended launch path:
+After the conference:
 
-1. Deploy with Sites.
-2. Add a custom route or redirect from `www.ceali.org/tough-conversations-notebook`.
-3. Set runtime environment variables:
-   - `ADMIN_EXPORT_KEY`
-   - `LEAD_WEBHOOK_URL` if using Google Sheets or Airtable sync
-4. Test one registration, one download, CSV export, and QR scan before the conference.
+- Export contacts from Google Sheets.
+- Review GA4 events for most viewed and downloaded materials.
+- Update `content/resources.json` for future events.

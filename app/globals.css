@@ -175,11 +175,48 @@ a {
 }
 
 .hero-inner {
+  align-items: center;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
   gap: 2rem;
   margin: 0 auto;
   max-width: 1180px;
   padding: clamp(4rem, 10vw, 7rem) 1rem 4rem;
+}
+
+.hero-main {
+  display: grid;
+  gap: 2rem;
+}
+
+.hero-qr-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  padding: 1rem;
+  text-align: center;
+}
+
+.hero-qr-card img {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem;
+}
+
+.hero-qr-card strong {
+  font-size: 1rem;
+}
+
+.hero-qr-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
 }
 
 .eyebrow {
@@ -404,6 +441,13 @@ a {
   color: #176b5b;
 }
 
+.privacy-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0.85rem 0 0;
+}
+
 .notebook-header {
   align-items: end;
   display: grid;
@@ -435,6 +479,34 @@ a {
 
 .search-input {
   padding-left: 2.35rem;
+}
+
+.segmented-filter {
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.segmented-filter button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.segmented-filter button[aria-pressed="true"] {
+  background: var(--green);
+  color: white;
 }
 
 .toc {
@@ -717,6 +789,15 @@ svg {
 }
 
 @media (max-width: 920px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-qr-card {
+    justify-self: start;
+    max-width: 18rem;
+  }
+
   .intro-grid,
   .notebook-header {
     grid-template-columns: 1fr;
@@ -753,6 +834,10 @@ svg {
 
   .hero-inner {
     padding-top: 4rem;
+  }
+
+  .hero-qr-card {
+    max-width: 100%;
   }
 
   .form-grid,

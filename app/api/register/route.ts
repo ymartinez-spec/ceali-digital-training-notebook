@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLeadWebhookUrl, saveRegistration } from "@/db/queries";
-import { getClientDetails } from "@/lib/request";
+import { saveRegistration } from "@/db/queries";
+
+export const runtime = "nodejs";
 
 type RegisterBody = {
   consent?: boolean;
@@ -39,35 +40,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { ipAddress, userAgent } = getClientDetails(request);
-  const timestamp = new Date().toISOString();
-  await saveRegistration({
-    consent,
-    email,
-    firstName,
-    ipAddress,
-    lastName,
-    organization,
-    phone,
-    sessionId: clean(body.sessionId),
-    userAgent,
-  });
-
-  const webhookUrl = getLeadWebhookUrl();
-  if (webhookUrl) {
-    await fetch(webhookUrl, {
-      body: JSON.stringify({
-        consent,
-        email,
-        firstName,
-        lastName,
-        organization,
-        phone,
-        timestamp,
-      }),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-    }).catch(() => undefined);
+  try {
+    await saveRegistration({
+      consent,
+      email,
+      firstName,
+      lastName,
+      organization,
+      phone,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Registration could not be saved.",
+      },
+      { status: 500 },
+    );
   }
 
   const response = NextResponse.json({ ok: true });

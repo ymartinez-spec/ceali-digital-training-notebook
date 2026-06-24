@@ -1,192 +1,177 @@
-import { env } from "cloudflare:workers";
-import {
-  createEventsSql,
-  createIndexesSql,
-  createRegistrationsSql,
-} from "@/db/schema";
+import { createSign } from "node:crypto";
 
-type RuntimeEnv = {
-  ADMIN_EXPORT_KEY?: string;
-  DB?: D1Database;
-  LEAD_WEBHOOK_URL?: string;
-};
-
-type RegistrationInput = {
+export type RegistrationInput = {
   consent: boolean;
   email: string;
   firstName: string;
-  ipAddress: string;
   lastName: string;
   organization?: string;
   phone: string;
-  sessionId?: string;
-  userAgent: string;
 };
 
-type EventInput = {
-  action?: string;
-  eventType: string;
-  ipAddress: string;
-  resourceId?: string;
-  sessionId?: string;
-  userAgent: string;
+export type RegistrationRow = {
+  consent: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  organization: string | null;
+  phone: string;
+  timestamp: string;
 };
 
-const runtimeEnv = env as RuntimeEnv;
+type GoogleTokenResponse = {
+  access_token?: string;
+  error?: string;
+  error_description?: string;
+};
+
+const sheetsScope = "https://www.googleapis.com/auth/spreadsheets";
+
+function base64Url(input: string | Buffer) {
+  return Buffer.from(input)
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function getGoogleConfig() {
+  const clientEmail =
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const tabName = process.env.GOOGLE_SHEET_TAB_NAME || "Registrations";
+
+  if (!clientEmail || !privateKey || !sheetId) {
+    throw new Error(
+      "Google Sheets is not configured. Add GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_SHEET_ID in Vercel.",
+    );
+  }
+
+  return { clientEmail, privateKey, sheetId, tabName };
+}
+
+async function getGoogleAccessToken() {
+  const { clientEmail, privateKey } = getGoogleConfig();
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = base64Url(
+    JSON.stringify({
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now,
+      iss: clientEmail,
+      scope: sheetsScope,
+    }),
+  );
+  const unsignedJwt = `${header}.${claim}`;
+  const signature = createSign("RSA-SHA256")
+    .update(unsignedJwt)
+    .sign(privateKey);
+  const jwt = `${unsignedJwt}.${base64Url(signature)}`;
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    body: new URLSearchParams({
+      assertion: jwt,
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: "POST",
+  });
+  const data = (await response.json()) as GoogleTokenResponse;
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(
+      data.error_description || data.error || "Could not authenticate with Google.",
+    );
+  }
+
+  return data.access_token;
+}
+
+function valuesRange(tabName: string) {
+  return `${encodeURIComponent(`'${tabName}'!A:G`)}`;
+}
 
 export function getAdminExportKey() {
-  return runtimeEnv.ADMIN_EXPORT_KEY;
+  return process.env.ADMIN_EXPORT_KEY;
 }
 
-export function getLeadWebhookUrl() {
-  return runtimeEnv.LEAD_WEBHOOK_URL;
-}
-
-function getDatabase() {
-  if (!runtimeEnv.DB) {
-    throw new Error("D1 database binding DB is not available.");
-  }
-  return runtimeEnv.DB;
-}
-
-export async function ensureTables() {
-  const db = getDatabase();
-  await db.batch([
-    db.prepare(createRegistrationsSql),
-    db.prepare(createEventsSql),
-    ...createIndexesSql.map((statement) => db.prepare(statement)),
-  ]);
-  return db;
+export function getPublicGoogleSheetUrl() {
+  return process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
 }
 
 export async function saveRegistration(input: RegistrationInput) {
-  const db = await ensureTables();
-  await db
-    .prepare(
-      `INSERT INTO registrations (
-        id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        organization,
-        consent,
-        session_id,
-        user_agent,
-        ip_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      crypto.randomUUID(),
-      input.firstName,
-      input.lastName,
-      input.email,
-      input.phone,
-      input.organization || null,
-      input.consent ? 1 : 0,
-      input.sessionId || null,
-      input.userAgent,
-      input.ipAddress,
-    )
-    .run();
+  const { sheetId, tabName } = getGoogleConfig();
+  const accessToken = await getGoogleAccessToken();
+  const timestamp = new Date().toISOString();
+
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${valuesRange(
+      tabName,
+    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      body: JSON.stringify({
+        values: [
+          [
+            timestamp,
+            input.firstName,
+            input.lastName,
+            input.email,
+            input.phone,
+            input.organization || "",
+            input.consent ? "Yes" : "No",
+          ],
+        ],
+      }),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Could not save registration to Google Sheets. ${text}`);
+  }
+
+  return { timestamp };
 }
 
-export async function recordEvent(input: EventInput) {
-  const db = await ensureTables();
-  await db
-    .prepare(
-      `INSERT INTO analytics_events (
-        id,
-        event_type,
-        resource_id,
-        action,
-        session_id,
-        user_agent,
-        ip_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      crypto.randomUUID(),
-      input.eventType,
-      input.resourceId || null,
-      input.action || null,
-      input.sessionId || null,
-      input.userAgent,
-      input.ipAddress,
-    )
-    .run();
-}
+export async function getRegistrationsForCsv(): Promise<RegistrationRow[]> {
+  const { sheetId, tabName } = getGoogleConfig();
+  const accessToken = await getGoogleAccessToken();
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${valuesRange(
+      tabName,
+    )}`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
 
-export async function getAnalytics() {
-  const db = await ensureTables();
-  const [visitors, registrations, downloads, views, topDownloads] =
-    await Promise.all([
-      db
-        .prepare(
-          "SELECT COUNT(DISTINCT COALESCE(session_id, ip_address, id)) AS count FROM analytics_events WHERE event_type = ?",
-        )
-        .bind("visit")
-        .first<{ count: number }>(),
-      db
-        .prepare("SELECT COUNT(*) AS count FROM registrations")
-        .first<{ count: number }>(),
-      db
-        .prepare(
-          "SELECT COUNT(*) AS count FROM analytics_events WHERE event_type = ? AND action = ?",
-        )
-        .bind("resource", "download")
-        .first<{ count: number }>(),
-      db
-        .prepare(
-          "SELECT COUNT(*) AS count FROM analytics_events WHERE event_type = ? AND action = ?",
-        )
-        .bind("resource", "view")
-        .first<{ count: number }>(),
-      db
-        .prepare(
-          `SELECT resource_id AS resourceId, COUNT(*) AS count
-           FROM analytics_events
-           WHERE event_type = ? AND action = ? AND resource_id IS NOT NULL
-           GROUP BY resource_id
-           ORDER BY count DESC
-           LIMIT 8`,
-        )
-        .bind("resource", "download")
-        .all<{ resourceId: string; count: number }>(),
-    ]);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Could not read registrations from Google Sheets. ${text}`);
+  }
 
-  return {
-    downloads: downloads?.count ?? 0,
-    registrations: registrations?.count ?? 0,
-    topDownloads: topDownloads.results ?? [],
-    views: views?.count ?? 0,
-    visitors: visitors?.count ?? 0,
-  };
-}
+  const data = (await response.json()) as { values?: string[][] };
+  const rows = data.values ?? [];
+  const withoutHeader =
+    rows[0]?.[0]?.toLowerCase() === "timestamp" ? rows.slice(1) : rows;
 
-export async function getRegistrationsForCsv() {
-  const db = await ensureTables();
-  const rows = await db
-    .prepare(
-      `SELECT
-        created_at AS timestamp,
-        first_name AS firstName,
-        last_name AS lastName,
-        email,
-        phone,
-        organization,
-        consent
-       FROM registrations
-       ORDER BY created_at DESC`,
-    )
-    .all<{
-      consent: number;
-      email: string;
-      firstName: string;
-      lastName: string;
-      organization: string | null;
-      phone: string;
-      timestamp: string;
-    }>();
-  return rows.results ?? [];
+  return withoutHeader
+    .filter((row) => row.some(Boolean))
+    .map((row) => ({
+      consent: row[6]?.toLowerCase() === "yes" ? 1 : 0,
+      email: row[3] ?? "",
+      firstName: row[1] ?? "",
+      lastName: row[2] ?? "",
+      organization: row[5] || null,
+      phone: row[4] ?? "",
+      timestamp: row[0] ?? "",
+    }))
+    .reverse();
 }
