@@ -6,7 +6,8 @@ Built with:
 
 - Next.js
 - Tailwind CSS
-- Google Sheets for registrations
+- Google Apps Script Web App for registrations
+- Google Sheets for lead storage
 - Google Drive-ready PDF links
 - Google Analytics 4 event tracking
 - Vercel deployment
@@ -15,9 +16,10 @@ Built with:
 
 1. They open the landing page from a QR code.
 2. They submit first name, last name, email, mobile phone, optional organization, and consent.
-3. Their information saves to Google Sheets.
-4. They immediately unlock the Digital Training Notebook.
-5. They can search, filter, favorite, view, download, or download all resources.
+3. Their information posts to a Google Apps Script Web App.
+4. Apps Script appends the registration to Google Sheets.
+5. They immediately unlock the Digital Training Notebook.
+6. They can search, filter, favorite, view, download, or download all resources.
 
 ## Included Notebook Content
 
@@ -62,10 +64,7 @@ Required for registrations:
 
 ```text
 ADMIN_EXPORT_KEY=
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_PRIVATE_KEY=
-GOOGLE_SHEET_ID=
-GOOGLE_SHEET_TAB_NAME=Registrations
+NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL=
 ```
 
 Recommended public links:
@@ -96,24 +95,58 @@ Google Drive Folder: https://drive.google.com/drive/folders/1btpWPeXYqQU7ntfEK5d
 
 1. Create a Google Sheet named `CEALI Conference Registrations`.
 2. Create a tab named `Registrations`.
-3. Add this header row:
+3. Add this header row, or let Apps Script create it on first submission:
 
 ```text
-Timestamp | First Name | Last Name | Email | Phone Number | Organization | Consent Status
+Timestamp | First Name | Last Name | Email | Phone Number | Organization | Consent Status | Consent Text | Session ID | Page URL | Submitted At | User Agent
 ```
 
-4. In Google Cloud Console, create a project.
-5. Enable the Google Sheets API.
-6. Create a Service Account.
-7. Create a JSON key for the service account.
-8. Copy the service account email into `GOOGLE_SERVICE_ACCOUNT_EMAIL`.
-9. Copy the private key into `GOOGLE_PRIVATE_KEY`.
-10. Share the Google Sheet with the service account email as Editor.
-11. Copy the Sheet ID from the Google Sheet URL into `GOOGLE_SHEET_ID`.
+## Google Apps Script Setup
+
+This replaces the old Google Sheets API service-account setup. You do not need a Google Cloud project, service account, JSON key, or private key.
+
+1. Open the registration Google Sheet.
+2. Choose **Extensions > Apps Script**.
+3. Delete any starter code.
+4. Paste the complete script from:
+
+```text
+google-apps-script/Code.gs
+```
+
+5. Confirm `SPREADSHEET_ID` matches the ID in your Google Sheet URL.
+6. In Apps Script, open **Project Settings > Script properties**.
+7. Add this script property:
+
+```text
+ADMIN_EXPORT_KEY = the same value you use in Vercel
+```
+
+8. Click **Save**.
+9. Click **Deploy > New deployment**.
+10. Click the gear next to **Select type** and choose **Web app**.
+11. Use these deployment settings:
+
+```text
+Description: CEALI Registration Endpoint
+Execute as: Me
+Who has access: Anyone
+```
+
+12. Click **Deploy**.
+13. Authorize the script when Google asks.
+14. Copy the Web App URL. It should end in `/exec`.
+15. In Vercel, add:
+
+```text
+NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL=https://script.google.com/macros/s/.../exec
+```
+
+16. Redeploy the Vercel project.
 
 To view submissions, open the Google Sheet. To export contacts manually, use Google Sheets: **File > Download > Comma Separated Values (.csv)**.
 
-The app also provides CSV export:
+The app also provides CSV export through the Apps Script Web App:
 
 ```text
 /api/admin/contacts.csv?key=YOUR_ADMIN_EXPORT_KEY
@@ -205,7 +238,7 @@ Recommended for 400+ attendees:
 
 - Vercel Hobby or Pro is fine for a conference resource portal.
 - PDFs should use Google Drive links for large public traffic.
-- Keep Google Sheet shared only with you and the service account.
+- Keep the Google Sheet private. Apps Script writes to it as you.
 
 ## QR Code
 

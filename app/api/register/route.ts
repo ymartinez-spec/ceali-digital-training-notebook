@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveRegistration } from "@/db/queries";
 
 export const runtime = "nodejs";
 
@@ -23,7 +22,6 @@ export async function POST(request: NextRequest) {
   const lastName = clean(body.lastName);
   const email = clean(body.email).toLowerCase();
   const phone = clean(body.phone);
-  const organization = clean(body.organization);
   const consent = body.consent === true;
 
   if (!firstName || !lastName || !email || !phone || !consent) {
@@ -37,27 +35,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Please enter a valid email address." },
       { status: 400 },
-    );
-  }
-
-  try {
-    await saveRegistration({
-      consent,
-      email,
-      firstName,
-      lastName,
-      organization,
-      phone,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Registration could not be saved.",
-      },
-      { status: 500 },
     );
   }
 

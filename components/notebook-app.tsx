@@ -313,8 +313,30 @@ export default function NotebookApp({
     setFormStatus(null);
 
     try {
+      if (!appsScriptWebAppUrl) {
+        throw new Error(
+          "Registration is not configured. Add the Apps Script Web App URL in Vercel.",
+        );
+      }
+
+      const sessionId = getSessionId();
+      await fetch(appsScriptWebAppUrl, {
+        body: JSON.stringify({
+          ...form,
+          consentText:
+            "I would like to receive information about future trainings, resources, events, coaching opportunities, and professional development offerings from CEALI.",
+          pageUrl: window.location.href,
+          sessionId,
+          submittedAt: new Date().toISOString(),
+          userAgent: window.navigator.userAgent,
+        }),
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        method: "POST",
+        mode: "no-cors",
+      });
+
       const response = await fetch("/api/register", {
-        body: JSON.stringify({ ...form, sessionId: getSessionId() }),
+        body: JSON.stringify({ ...form, sessionId }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -363,6 +385,8 @@ export default function NotebookApp({
   const favoriteResources = allResources.filter((resource) =>
     favoriteIds.has(resource.id),
   );
+  const appsScriptWebAppUrl =
+    process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || "";
   const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
   const googleDriveFolderUrl =
     process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_URL ||
@@ -763,8 +787,9 @@ export default function NotebookApp({
             <p className="section-kicker">Admin</p>
             <h2 className="section-title">Lead Management</h2>
             <p className="body-copy">
-              Export registrations from Google Sheets and review visitor,
-              registration, view, and download activity in Google Analytics.
+              Open the registration Sheet, export contacts through Apps Script,
+              and review visitor, registration, view, and download activity in
+              Google Analytics.
             </p>
             <div className="admin-grid">
               <label>
@@ -804,8 +829,8 @@ export default function NotebookApp({
             {adminStatus ? <p className="form-message success">{adminStatus}</p> : null}
             <div className="analytics-grid">
               <div className="analytics-tile">
-                <strong>Sheets</strong>
-                <span>Registrations and CSV exports</span>
+                <strong>Apps Script</strong>
+                <span>Registration posts and CSV exports</span>
               </div>
               <div className="analytics-tile">
                 <strong>Drive</strong>
