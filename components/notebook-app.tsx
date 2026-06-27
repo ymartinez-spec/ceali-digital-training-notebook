@@ -41,6 +41,8 @@ const notebookTabs: { id: NotebookTab; label: string }[] = [
   { id: "favorites", label: "Favorites" },
 ];
 
+const CEALI_LOGO_SRC = "/ceali-logo.png";
+
 const notebookTabLabels = notebookTabs.reduce(
   (labels, tab) => ({ ...labels, [tab.id]: tab.label }),
   {} as Record<NotebookTab, string>,
@@ -173,6 +175,39 @@ function getNotebookPageLabel(page: NotebookPage, index: number) {
   return labels[page.kind] ?? `Page ${index + 1}`;
 }
 
+function normalizeSpreadStart(index: number, maxSpreadStart: number) {
+  const clamped = Math.max(0, Math.min(index, maxSpreadStart));
+  return clamped % 2 === 0 ? clamped : clamped - 1;
+}
+
+function PremiumCoverContent({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className={compact ? "premium-cover-content compact" : "premium-cover-content"}>
+      <Image
+        alt="Childcare Excellence Association logo"
+        className="premium-cover-logo"
+        height={232}
+        priority={!compact}
+        src={CEALI_LOGO_SRC}
+        unoptimized
+        width={500}
+      />
+      <span className="premium-cover-rule" aria-hidden="true" />
+      <span className="premium-cover-title">Digital Training Notebook</span>
+      <span className="premium-cover-subtitle">Having Tough Conversations</span>
+      <span className="premium-cover-small">
+        Training Tools &amp; Resources for Early Childhood Professionals
+      </span>
+      {!compact ? (
+        <span className="premium-cover-open">
+          Click anywhere to open your notebook
+          <span aria-hidden="true">↓</span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function NotebookResourcePage({
   hasNotebookAccess,
   resource,
@@ -296,16 +331,13 @@ function NotebookPageContent({
       <div className="page-cover">
         <div className="cover-logo">
           <Image
-            alt=""
-            height={58}
-            src="/favicon.svg"
+            alt="Childcare Excellence Association logo"
+            className="cover-logo-image"
+            height={126}
+            src={CEALI_LOGO_SRC}
             unoptimized
-            width={58}
+            width={272}
           />
-          <div>
-            <strong>CEALI</strong>
-            <span>Digital Training Notebook</span>
-          </div>
         </div>
         <p className="page-kicker">Having Tough Conversations</p>
         <h3>Digital Training Notebook</h3>
@@ -460,7 +492,12 @@ export default function NotebookApp({
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState("");
   const [notebookTab, setNotebookTab] = useState<NotebookTab>("presentation");
-  const [currentPageIndex, setCurrentPageIndex] = useState(1);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [notebookOpened, setNotebookOpened] = useState(false);
+  const [coverAnimating, setCoverAnimating] = useState(false);
+  const [pageTurnDirection, setPageTurnDirection] = useState<
+    "next" | "previous" | "jump" | null
+  >(null);
   const favoriteIds = useMemo(
     () => parseFavorites(favoriteSnapshot),
     [favoriteSnapshot],
@@ -476,6 +513,24 @@ export default function NotebookApp({
       method: "POST",
     }).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!coverAnimating) {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => setCoverAnimating(false), 760);
+    return () => window.clearTimeout(timeout);
+  }, [coverAnimating]);
+
+  useEffect(() => {
+    if (!pageTurnDirection) {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => setPageTurnDirection(null), 340);
+    return () => window.clearTimeout(timeout);
+  }, [currentPageIndex, pageTurnDirection]);
 
   function updateForm(field: keyof RegistrationForm, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -639,11 +694,17 @@ export default function NotebookApp({
     ];
   }, [hasNotebookAccess, notebookTab, query, visibleNotebookResources]);
   const maxNotebookPageIndex = Math.max(notebookPages.length - 1, 0);
-  const visiblePageIndex = Math.min(currentPageIndex, maxNotebookPageIndex);
+  const maxNotebookSpreadStart =
+    maxNotebookPageIndex % 2 === 0
+      ? maxNotebookPageIndex
+      : Math.max(maxNotebookPageIndex - 1, 0);
+  const visiblePageIndex = normalizeSpreadStart(
+    currentPageIndex,
+    maxNotebookSpreadStart,
+  );
   const fallbackNotebookPage: NotebookPage = { id: "cover", kind: "cover" };
-  const leftNotebookPage =
-    visiblePageIndex > 0 ? notebookPages[visiblePageIndex - 1] : null;
-  const rightNotebookPage = notebookPages[visiblePageIndex] ?? fallbackNotebookPage;
+  const leftNotebookPage = notebookPages[visiblePageIndex] ?? fallbackNotebookPage;
+  const rightNotebookPage = notebookPages[visiblePageIndex + 1] ?? null;
   const appsScriptWebAppUrl =
     process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || "";
   const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
@@ -659,24 +720,53 @@ export default function NotebookApp({
     process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_URL ||
     "https://analytics.google.com/";
 
+  function openNotebook() {
+    if (notebookOpened || coverAnimating) {
+      return;
+    }
+
+    setNotebookOpened(true);
+    setCoverAnimating(true);
+    setCurrentPageIndex((current) =>
+      normalizeSpreadStart(current, maxNotebookSpreadStart),
+    );
+  }
+
   function goToNotebookPage(index: number) {
-    setCurrentPageIndex(Math.max(0, Math.min(index, maxNotebookPageIndex)));
+    const nextIndex = normalizeSpreadStart(index, maxNotebookSpreadStart);
+    if (nextIndex === visiblePageIndex) {
+      return;
+    }
+
+    setPageTurnDirection(nextIndex > visiblePageIndex ? "next" : "previous");
+    setCurrentPageIndex(nextIndex);
   }
 
   function goToNextNotebookPage() {
-    setCurrentPageIndex(Math.min(visiblePageIndex + 1, maxNotebookPageIndex));
+    goToNotebookPage(visiblePageIndex + 2);
   }
 
   function goToPreviousNotebookPage() {
-    setCurrentPageIndex(Math.max(visiblePageIndex - 1, 0));
+    goToNotebookPage(visiblePageIndex - 2);
   }
 
   function jumpToNotebookTab(tab: NotebookTab) {
     setNotebookTab(tab);
-    setCurrentPageIndex(hasNotebookAccess ? 2 : 1);
+    setPageTurnDirection("jump");
+    setCurrentPageIndex(hasNotebookAccess ? 2 : 0);
   }
 
   function handleNotebookKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!notebookOpened && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      openNotebook();
+      return;
+    }
+
+    if (!notebookOpened) {
+      return;
+    }
+
     if (event.key === "ArrowRight") {
       event.preventDefault();
       goToNextNotebookPage();
@@ -897,11 +987,11 @@ export default function NotebookApp({
               <div className="notebook-brand-lockup">
                 <span className="notebook-logo">
                   <Image
-                    alt=""
-                    height={44}
-                    src="/favicon.svg"
+                    alt="Childcare Excellence Association logo"
+                    height={40}
+                    src={CEALI_LOGO_SRC}
                     unoptimized
-                    width={44}
+                    width={86}
                   />
                 </span>
                 <div>
@@ -918,7 +1008,8 @@ export default function NotebookApp({
                   disabled={!hasNotebookAccess}
                   onChange={(event) => {
                     setQuery(event.target.value);
-                    setCurrentPageIndex(hasNotebookAccess ? 2 : 1);
+                    setPageTurnDirection("jump");
+                    setCurrentPageIndex(hasNotebookAccess ? 2 : 0);
                   }}
                   placeholder={
                     hasNotebookAccess
@@ -970,28 +1061,44 @@ export default function NotebookApp({
 
             <div
               aria-label="Interactive digital notebook"
-              className="desk-scene"
+              className={`desk-scene ${
+                notebookOpened ? "notebook-opened" : "notebook-closed"
+              }`}
               onKeyDown={handleNotebookKeyDown}
               tabIndex={0}
             >
-              <button
-                aria-label="Previous notebook page"
-                className="page-turn page-turn-left"
-                disabled={visiblePageIndex === 0}
-                onClick={goToPreviousNotebookPage}
-                type="button"
-              >
-                ‹
-              </button>
+              {notebookOpened ? (
+                <button
+                  aria-label="Previous notebook page spread"
+                  className="page-turn page-turn-left"
+                  disabled={visiblePageIndex === 0}
+                  onClick={goToPreviousNotebookPage}
+                  type="button"
+                >
+                  ‹
+                </button>
+              ) : null}
 
-              <div className="notebook-stage">
+              <div
+                className={`notebook-stage ${
+                  notebookOpened ? "is-open" : "is-closed"
+                } ${coverAnimating ? "is-opening" : ""}`}
+              >
                 <div className="cover-backing" aria-hidden="true" />
-                <div className="open-notebook">
-                  <article className="notebook-page page-left">
-                    {leftNotebookPage ? (
-                      <NotebookPageContent
-                        appendixCount={appendixResources.length}
-                        currentTab={notebookTab}
+
+                {notebookOpened ? (
+                  <>
+                    <div
+                      className={`open-notebook ${
+                        pageTurnDirection
+                          ? `page-turning-${pageTurnDirection}`
+                          : ""
+                      }`}
+                    >
+                      <article className="notebook-page page-left">
+                        <NotebookPageContent
+                          appendixCount={appendixResources.length}
+                          currentTab={notebookTab}
                         favoriteCount={favoriteResources.length}
                         favoriteIds={favoriteIds}
                         hasNotebookAccess={hasNotebookAccess}
@@ -999,85 +1106,123 @@ export default function NotebookApp({
                         notebookSettings={notebookSettings}
                         onJumpToTab={jumpToNotebookTab}
                         onToggleFavorite={toggleFavorite}
-                        onTrackAction={trackResourceAction}
-                        page={leftNotebookPage}
-                        templateCount={templateResources.length}
-                      />
-                    ) : null}
-                    <span className="page-number">
-                      Page {Math.max(visiblePageIndex, 1)}
-                    </span>
-                  </article>
-                  <div className="spiral-binding" aria-hidden="true">
-                    {Array.from({ length: 13 }).map((_, index) => (
-                      <span key={index} />
-                    ))}
-                  </div>
-                  <article className="notebook-page page-right">
-                    <NotebookPageContent
-                      appendixCount={appendixResources.length}
-                      currentTab={notebookTab}
-                      favoriteCount={favoriteResources.length}
-                      favoriteIds={favoriteIds}
-                      hasNotebookAccess={hasNotebookAccess}
-                      handoutCount={handoutResources.length}
-                      notebookSettings={notebookSettings}
-                      onJumpToTab={jumpToNotebookTab}
-                      onToggleFavorite={toggleFavorite}
-                      onTrackAction={trackResourceAction}
-                      page={rightNotebookPage}
-                      templateCount={templateResources.length}
-                    />
-                    <span className="page-number">
-                      Page {visiblePageIndex + 1}
-                    </span>
-                  </article>
-                </div>
+                          onTrackAction={trackResourceAction}
+                          page={leftNotebookPage}
+                          templateCount={templateResources.length}
+                        />
+                        <span className="page-number">
+                          Page {visiblePageIndex + 1}
+                        </span>
+                      </article>
+                      <div className="spiral-binding" aria-hidden="true">
+                        {Array.from({ length: 13 }).map((_, index) => (
+                          <span key={index} />
+                        ))}
+                      </div>
+                      <article className="notebook-page page-right">
+                        {rightNotebookPage ? (
+                          <>
+                            <NotebookPageContent
+                              appendixCount={appendixResources.length}
+                              currentTab={notebookTab}
+                              favoriteCount={favoriteResources.length}
+                              favoriteIds={favoriteIds}
+                              hasNotebookAccess={hasNotebookAccess}
+                              handoutCount={handoutResources.length}
+                              notebookSettings={notebookSettings}
+                              onJumpToTab={jumpToNotebookTab}
+                              onToggleFavorite={toggleFavorite}
+                              onTrackAction={trackResourceAction}
+                              page={rightNotebookPage}
+                              templateCount={templateResources.length}
+                            />
+                            <span className="page-number">
+                              Page {visiblePageIndex + 2}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="blank-inside-page" aria-hidden="true" />
+                        )}
+                      </article>
+                    </div>
 
-                <div className="divider-tabs" aria-label="Notebook sections">
-                  {notebookTabs.map((tab) => (
-                    <button
-                      aria-pressed={notebookTab === tab.id}
-                      className={`divider-tab tab-${tab.id}`}
-                      disabled={!hasNotebookAccess}
-                      key={tab.id}
-                      onClick={() => jumpToNotebookTab(tab.id)}
-                      type="button"
-                    >
-                      <span>{tab.label}</span>
-                      {tab.id === "favorites" ? (
-                        <strong>{favoriteResources.length}</strong>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
+                    <div className="divider-tabs" aria-label="Notebook sections">
+                      {notebookTabs.map((tab) => (
+                        <button
+                          aria-pressed={notebookTab === tab.id}
+                          className={`divider-tab tab-${tab.id}`}
+                          disabled={!hasNotebookAccess}
+                          key={tab.id}
+                          onClick={() => jumpToNotebookTab(tab.id)}
+                          type="button"
+                        >
+                          <span>{tab.label}</span>
+                          {tab.id === "favorites" ? (
+                            <strong>{favoriteResources.length}</strong>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    aria-label="Open CEALI Digital Training Notebook"
+                    className="closed-notebook-cover"
+                    onClick={openNotebook}
+                    type="button"
+                  >
+                    <span className="closed-cover-spiral" aria-hidden="true">
+                      {Array.from({ length: 12 }).map((_, index) => (
+                        <span key={index} />
+                      ))}
+                    </span>
+                    <PremiumCoverContent />
+                    <span className="closed-cover-access">
+                      {hasNotebookAccess
+                        ? "Notebook unlocked"
+                        : "Register to unlock access to all notebook materials."}
+                    </span>
+                  </button>
+                )}
+
+                {coverAnimating ? (
+                  <span className="front-cover-swing" aria-hidden="true">
+                    <PremiumCoverContent compact />
+                  </span>
+                ) : null}
               </div>
 
-              <button
-                aria-label="Next notebook page"
-                className="page-turn page-turn-right"
-                disabled={visiblePageIndex >= maxNotebookPageIndex}
-                onClick={goToNextNotebookPage}
-                type="button"
-              >
-                ›
-              </button>
-            </div>
-
-            <div className="page-strip" aria-label="Notebook page navigation">
-              <span>Go to page</span>
-              {notebookPages.map((page, index) => (
+              {notebookOpened ? (
                 <button
-                  aria-current={index === visiblePageIndex ? "page" : undefined}
-                  key={page.id}
-                  onClick={() => goToNotebookPage(index)}
-                  title={getNotebookPageLabel(page, index)}
+                  aria-label="Next notebook page spread"
+                  className="page-turn page-turn-right"
+                  disabled={visiblePageIndex >= maxNotebookSpreadStart}
+                  onClick={goToNextNotebookPage}
                   type="button"
                 >
-                  {index + 1}
+                  ›
                 </button>
-              ))}
+              ) : null}
             </div>
+
+            {notebookOpened ? (
+              <div className="page-strip" aria-label="Notebook page navigation">
+                <span>Go to page</span>
+                {notebookPages.map((page, index) => (
+                  <button
+                    aria-current={
+                      index === visiblePageIndex ? "page" : undefined
+                    }
+                    key={page.id}
+                    onClick={() => goToNotebookPage(index)}
+                    title={getNotebookPageLabel(page, index)}
+                    type="button"
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             {!hasNotebookAccess ? (
               <p className="notebook-lock-note" role="status">
