@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { NotebookSettings, ResourceItem } from "@/lib/resources";
 import {
@@ -29,7 +29,32 @@ type RegistrationForm = {
   consent: boolean;
 };
 
-type CategoryFilter = "all" | "template" | "handout" | "appendix";
+type NotebookTab = "presentation" | "template" | "appendix" | "favorites";
+
+const notebookTabs: { id: NotebookTab; label: string }[] = [
+  {
+    id: "presentation",
+    label: "Presentation Materials",
+  },
+  { id: "template", label: "Templates" },
+  { id: "appendix", label: "Appendix" },
+  { id: "favorites", label: "Favorites" },
+];
+
+const notebookTabLabels = notebookTabs.reduce(
+  (labels, tab) => ({ ...labels, [tab.id]: tab.label }),
+  {} as Record<NotebookTab, string>,
+);
+
+type NotebookPage =
+  | { id: string; kind: "cover" | "welcome" | "toc" | "additional" | "closing" }
+  | {
+      emptyMessage: string;
+      id: string;
+      kind: "resources";
+      resources: ResourceItem[];
+      title: string;
+    };
 
 declare global {
   interface Window {
@@ -122,7 +147,32 @@ function trackEvent(eventName: string, params: Record<string, string>) {
   window.gtag?.("event", eventName, params);
 }
 
-function ResourceCard({
+function chunkResources(resources: ResourceItem[], size: number) {
+  const chunks: ResourceItem[][] = [];
+  for (let index = 0; index < resources.length; index += size) {
+    chunks.push(resources.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function getNotebookPageLabel(page: NotebookPage, index: number) {
+  if (page.kind === "resources") {
+    return page.title;
+  }
+
+  const labels: Record<NotebookPage["kind"], string> = {
+    additional: "Resources",
+    closing: "Contact",
+    cover: "Cover",
+    resources: "Resources",
+    toc: "Contents",
+    welcome: "Welcome",
+  };
+
+  return labels[page.kind] ?? `Page ${index + 1}`;
+}
+
+function NotebookResourceItem({
   resource,
   favorite,
   onToggleFavorite,
@@ -134,19 +184,20 @@ function ResourceCard({
   onTrackAction: (resource: ResourceItem, action: "view" | "download") => void;
 }) {
   return (
-    <article className="resource-card">
-      <div className="preview-frame">
+    <article className="notebook-resource">
+      <div className="notebook-resource-preview">
         <Image
           alt=""
           fill
-          sizes="(max-width: 680px) 100vw, (max-width: 920px) 50vw, 33vw"
+          sizes="(max-width: 760px) 5rem, 6rem"
           src={resource.preview}
           unoptimized
         />
       </div>
-      <div className="resource-body">
-        <div className="resource-topline">
+      <div className="notebook-resource-copy">
+        <div className="notebook-resource-line">
           <span className={`pill ${resource.kind}`}>{resource.kind}</span>
+          <span className="resource-meta">{resource.pages}</span>
           <button
             aria-label={
               favorite
@@ -164,8 +215,7 @@ function ResourceCard({
         </div>
         <h4>{resource.title}</h4>
         <p>{resource.description}</p>
-        <span className="resource-meta">{resource.pages}</span>
-        <div className="card-actions">
+        <div className="notebook-resource-actions">
           <a
             className="button button-light"
             href={`/api/resources/${resource.id}?action=view`}
@@ -190,54 +240,164 @@ function ResourceCard({
   );
 }
 
-function ResourceSection({
-  countLabel,
+function NotebookPageContent({
+  appendixCount,
+  currentTab,
   favoriteIds,
-  id,
-  query,
-  resources,
-  title,
-  categoryFilter,
+  favoriteCount,
+  handoutCount,
+  notebookSettings,
+  page,
+  templateCount,
+  onJumpToTab,
   onToggleFavorite,
   onTrackAction,
 }: {
-  categoryFilter: CategoryFilter;
-  countLabel: string;
+  appendixCount: number;
+  currentTab: NotebookTab;
   favoriteIds: Set<string>;
-  id: string;
-  query: string;
-  resources: ResourceItem[];
-  title: string;
+  favoriteCount: number;
+  handoutCount: number;
+  notebookSettings: NotebookSettings;
+  page: NotebookPage;
+  templateCount: number;
+  onJumpToTab: (tab: NotebookTab) => void;
   onToggleFavorite: (id: string) => void;
   onTrackAction: (resource: ResourceItem, action: "view" | "download") => void;
 }) {
-  const visible = resources.filter(
-    (resource) =>
-      resourceMatches(resource, query) &&
-      (categoryFilter === "all" || resource.kind === categoryFilter),
-  );
+  if (page.kind === "cover") {
+    return (
+      <div className="page-cover">
+        <p className="page-kicker">CEALI Conference Notebook</p>
+        <h3>Digital Resource Notebook</h3>
+        <p>
+          Having Tough Conversations: observation tools, planning guides, word
+          banks, and referral resources for early childhood professionals.
+        </p>
+        <div className="cover-stamp">
+          <strong>CEALI</strong>
+          <span>Professional Development Resources</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (page.kind === "welcome") {
+    return (
+      <div className="page-prose">
+        <p className="page-kicker">Welcome</p>
+        <h3>Training Materials At Your Fingertips</h3>
+        <p>
+          This notebook gathers the practical tools from today&apos;s session
+          into one calm, searchable place. Use the tabs, index, search, and
+          favorites to return quickly to the pages that support your work.
+        </p>
+        <div className="paper-note">
+          <strong>Inside this notebook</strong>
+          <span>{handoutCount} presentation files</span>
+          <span>{appendixCount} appendix resources</span>
+          <span>{favoriteCount} saved favorites</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (page.kind === "toc") {
+    return (
+      <div className="page-prose">
+        <p className="page-kicker">Index</p>
+        <h3>Table Of Contents</h3>
+        <div className="toc-list">
+          {[
+            ["presentation", "Presentation Materials", `${handoutCount} files`],
+            ["template", "Templates", `${templateCount} forms`],
+            ["appendix", "Appendix", `${appendixCount} word banks`],
+            ["favorites", "Favorites", `${favoriteCount} saved`],
+          ].map(([tab, label, count]) => (
+            <button
+              aria-current={currentTab === tab ? "page" : undefined}
+              key={tab}
+              onClick={() => onJumpToTab(tab as NotebookTab)}
+              type="button"
+            >
+              <span>{label}</span>
+              <strong>{count}</strong>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (page.kind === "additional") {
+    return (
+      <div className="page-prose">
+        <p className="page-kicker">Resources</p>
+        <h3>Additional CEALI Links</h3>
+        <div className="notebook-link-list">
+          <a href="https://www.ceali.org">CEALI Website</a>
+          <a href="https://www.instagram.com/ceali.ny/">Instagram @ceali.ny</a>
+          <a href="tel:6315160010">Contact CEALI: 631-516-0010</a>
+        </div>
+        <a
+          className="button button-dark"
+          href={`/api/resources/${notebookSettings.fullHandoutPacket.id}?action=download`}
+          onClick={() =>
+            trackEvent("download_all_handouts", {
+              resource_id: notebookSettings.fullHandoutPacket.id,
+              resource_title: notebookSettings.fullHandoutPacket.title,
+            })
+          }
+        >
+          <DownloadIcon size={17} />
+          Download All
+        </a>
+      </div>
+    );
+  }
+
+  if (page.kind === "closing") {
+    return (
+      <div className="page-prose closing-page">
+        <p className="page-kicker">Thank You</p>
+        <h3>Continue The Conversation</h3>
+        <p>
+          CEALI supports early childhood programs with training, coaching,
+          consultation, and professional resources rooted in respectful,
+          family-centered practice.
+        </p>
+        <div className="cover-stamp">
+          <strong>www.ceali.org</strong>
+          <span>@ceali.ny</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (page.kind !== "resources") {
+    return null;
+  }
 
   return (
-    <section className="resource-section" id={id}>
-      <div className="section-heading-row">
-        <h3>{title}</h3>
-        <span>{countLabel}</span>
+    <div className="page-resource-list">
+      <div className="page-heading">
+        <p className="page-kicker">Notebook Section</p>
+        <h3>{page.title}</h3>
       </div>
-      <div className="resource-grid">
-        {visible.map((resource) => (
-          <ResourceCard
+      {page.resources.length ? (
+        page.resources.map((resource) => (
+          <NotebookResourceItem
             favorite={favoriteIds.has(resource.id)}
             key={resource.id}
             onToggleFavorite={onToggleFavorite}
             onTrackAction={onTrackAction}
             resource={resource}
           />
-        ))}
-      </div>
-      <p className={`empty-state ${visible.length === 0 ? "visible" : ""}`}>
-        No matching resources found.
-      </p>
-    </section>
+        ))
+      ) : (
+        <p className="notebook-empty">{page.emptyMessage}</p>
+      )}
+    </div>
   );
 }
 
@@ -272,7 +432,10 @@ export default function NotebookApp({
   >(null);
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [notebookTab, setNotebookTab] = useState<NotebookTab>("presentation");
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [showIndex, setShowIndex] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const favoriteIds = useMemo(
     () => parseFavorites(favoriteSnapshot),
     [favoriteSnapshot],
@@ -382,9 +545,79 @@ export default function NotebookApp({
     });
   }
 
-  const favoriteResources = allResources.filter((resource) =>
-    favoriteIds.has(resource.id),
+  const favoriteResources = useMemo(
+    () => allResources.filter((resource) => favoriteIds.has(resource.id)),
+    [allResources, favoriteIds],
   );
+  const templateResources = useMemo(
+    () => handoutResources.filter((resource) => resource.kind === "template"),
+    [handoutResources],
+  );
+  const selectedTabResources = useMemo(() => {
+    if (notebookTab === "appendix") {
+      return appendixResources;
+    }
+    if (notebookTab === "favorites") {
+      return favoriteResources;
+    }
+    if (notebookTab === "template") {
+      return templateResources;
+    }
+    return handoutResources;
+  }, [
+    appendixResources,
+    favoriteResources,
+    handoutResources,
+    notebookTab,
+    templateResources,
+  ]);
+  const visibleNotebookResources = useMemo(
+    () =>
+      selectedTabResources.filter((resource) => resourceMatches(resource, query)),
+    [query, selectedTabResources],
+  );
+  const notebookPages = useMemo<NotebookPage[]>(() => {
+    const chunks = chunkResources(visibleNotebookResources, 4);
+    const resourcePages: NotebookPage[] = chunks.length
+      ? chunks.map((resources, index) => ({
+          emptyMessage: "",
+          id: `${notebookTab}-resources-${index}`,
+          kind: "resources",
+          resources,
+          title:
+            chunks.length > 1
+              ? `${notebookTabLabels[notebookTab]} ${index + 1}/${chunks.length}`
+              : notebookTabLabels[notebookTab],
+        }))
+      : [
+          {
+            emptyMessage: query.trim()
+              ? "No matching resources found on this tab."
+              : notebookTab === "favorites"
+                ? "Favorite resources will appear here after you tap the heart on a page."
+                : "No resources are available in this notebook section yet.",
+            id: `${notebookTab}-empty`,
+            kind: "resources",
+            resources: [],
+            title: notebookTabLabels[notebookTab],
+          },
+        ];
+
+    return [
+      { id: "cover", kind: "cover" },
+      { id: "welcome", kind: "welcome" },
+      { id: "toc", kind: "toc" },
+      ...resourcePages,
+      { id: "additional", kind: "additional" },
+      { id: "closing", kind: "closing" },
+    ];
+  }, [notebookTab, query, visibleNotebookResources]);
+  const maxNotebookPageIndex = Math.max(notebookPages.length - 1, 0);
+  const visiblePageIndex = Math.min(currentPageIndex, maxNotebookPageIndex);
+  const fallbackNotebookPage: NotebookPage = { id: "cover", kind: "cover" };
+  const currentNotebookPage =
+    notebookPages[visiblePageIndex] ?? fallbackNotebookPage;
+  const facingNotebookPage = notebookPages[visiblePageIndex + 1] ?? null;
   const appsScriptWebAppUrl =
     process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || "";
   const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
@@ -399,6 +632,35 @@ export default function NotebookApp({
   const googleAnalyticsUrl =
     process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_URL ||
     "https://analytics.google.com/";
+
+  function goToNotebookPage(index: number) {
+    setCurrentPageIndex(Math.max(0, Math.min(index, maxNotebookPageIndex)));
+  }
+
+  function goToNextNotebookPage() {
+    setCurrentPageIndex(Math.min(visiblePageIndex + 1, maxNotebookPageIndex));
+  }
+
+  function goToPreviousNotebookPage() {
+    setCurrentPageIndex(Math.max(visiblePageIndex - 1, 0));
+  }
+
+  function jumpToNotebookTab(tab: NotebookTab) {
+    setNotebookTab(tab);
+    setCurrentPageIndex(3);
+    setShowIndex(false);
+  }
+
+  function handleNotebookKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goToNextNotebookPage();
+    }
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goToPreviousNotebookPage();
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -604,110 +866,264 @@ export default function NotebookApp({
           </div>
         </section>
 
-        <section className="section-band alt" id="notebook">
-          <div className="section-inner">
-            <div className="notebook-header">
+        <section className="notebook-workspace-section" id="notebook">
+          <div
+            className={`notebook-workspace ${focusMode ? "focus-mode" : ""}`}
+          >
+            <div className="notebook-nav">
               <div>
                 <p className="section-kicker">Step 2</p>
-                <h2 className="section-title">Digital Resource Notebook</h2>
-                <p className="body-copy">
+                <h2>CEALI Digital Resource Notebook</h2>
+                <p>
                   {hasNotebookAccess
-                    ? "Search, favorite, view, or download the training resources."
-                    : "Complete registration to unlock resource view and download links."}
+                    ? "Flip through the workbook, search resources, save favorites, and download what you need."
+                    : "Register to unlock access to all notebook materials."}
                 </p>
               </div>
-              <div className="toolbar">
-                <label className="search-wrap">
-                  <SearchIcon size={18} />
-                  <span className="sr-only">Search resources</span>
-                  <input
-                    className="search-input"
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search resources"
-                    type="search"
-                    value={query}
-                  />
-                </label>
-                <div className="segmented-filter" aria-label="Filter resources">
-                  {[
-                    ["all", "All"],
-                    ["template", "Templates"],
-                    ["handout", "Handouts"],
-                    ["appendix", "Appendix"],
-                  ].map(([value, label]) => (
-                    <button
-                      aria-pressed={categoryFilter === value}
-                      key={value}
-                      onClick={() => setCategoryFilter(value as CategoryFilter)}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
+              {hasNotebookAccess ? (
+                <div className="notebook-tools" aria-label="Notebook tools">
+                  <label className="search-wrap notebook-search">
+                    <SearchIcon size={18} />
+                    <span className="sr-only">Search notebook resources</span>
+                    <input
+                      className="search-input"
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setCurrentPageIndex(3);
+                      }}
+                      placeholder="Search notebook"
+                      type="search"
+                      value={query}
+                    />
+                  </label>
+                  <button
+                    className="notebook-tool-button"
+                    onClick={() => setShowIndex((visible) => !visible)}
+                    type="button"
+                  >
+                    Index
+                  </button>
+                  <button
+                    className="notebook-tool-button"
+                    onClick={() => setFocusMode((active) => !active)}
+                    type="button"
+                  >
+                    {focusMode ? "Exit Fullscreen" : "Fullscreen"}
+                  </button>
+                  <a
+                    className="button button-primary"
+                    href={`/api/resources/${notebookSettings.fullHandoutPacket.id}?action=download`}
+                    onClick={() =>
+                      trackEvent("download_all_handouts", {
+                        resource_id: notebookSettings.fullHandoutPacket.id,
+                        resource_title: notebookSettings.fullHandoutPacket.title,
+                      })
+                    }
+                  >
+                    <DownloadIcon size={17} />
+                    Download All
+                  </a>
                 </div>
-                <a
-                  className="button button-dark"
-                  href={`/api/resources/${notebookSettings.fullHandoutPacket.id}?action=download`}
-                  onClick={() =>
-                    trackEvent("download_all_handouts", {
-                      resource_id: notebookSettings.fullHandoutPacket.id,
-                      resource_title: notebookSettings.fullHandoutPacket.title,
-                    })
-                  }
-                >
-                  <DownloadIcon size={17} />
-                  Download All
-                </a>
-              </div>
+              ) : null}
             </div>
-
-            <nav aria-label="Notebook table of contents" className="toc">
-              <a href="#presentation-materials">Presentation Materials</a>
-              <a href="#appendix-resources">Appendix Resources</a>
-              <a href="#favorite-resources">Favorites</a>
-              <a href="#additional-resources">Additional Resources</a>
-            </nav>
 
             {hasNotebookAccess ? (
               <>
-                <ResourceSection
-                  categoryFilter={categoryFilter}
-                  countLabel={`${handoutResources.length} files`}
-                  favoriteIds={favoriteIds}
-                  id="presentation-materials"
-                  onToggleFavorite={toggleFavorite}
-                  onTrackAction={trackResourceAction}
-                  query={query}
-                  resources={handoutResources}
-                  title="Presentation Materials"
-                />
-                <ResourceSection
-                  categoryFilter={categoryFilter}
-                  countLabel={`${appendixResources.length} files`}
-                  favoriteIds={favoriteIds}
-                  id="appendix-resources"
-                  onToggleFavorite={toggleFavorite}
-                  onTrackAction={trackResourceAction}
-                  query={query}
-                  resources={appendixResources}
-                  title="Appendix Resources"
-                />
-                <ResourceSection
-                  categoryFilter={categoryFilter}
-                  countLabel={`${favoriteResources.length} saved`}
-                  favoriteIds={favoriteIds}
-                  id="favorite-resources"
-                  onToggleFavorite={toggleFavorite}
-                  onTrackAction={trackResourceAction}
-                  query={query}
-                  resources={favoriteResources}
-                  title="Favorite Resources"
-                />
+                <div className="notebook-tabs" aria-label="Notebook sections">
+                  {notebookTabs.map((tab) => (
+                    <button
+                      aria-pressed={notebookTab === tab.id}
+                      key={tab.id}
+                      onClick={() => jumpToNotebookTab(tab.id)}
+                      type="button"
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {showIndex ? (
+                  <div className="floating-index" role="region" aria-label="Notebook index">
+                    <div className="floating-index-heading">
+                      <strong>Table of Contents</strong>
+                      <button
+                        className="mini-button"
+                        onClick={() => setShowIndex(false)}
+                        type="button"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <div className="floating-index-tabs">
+                      {notebookTabs.map((tab) => (
+                        <button
+                          aria-current={notebookTab === tab.id ? "page" : undefined}
+                          key={tab.id}
+                          onClick={() => jumpToNotebookTab(tab.id)}
+                          type="button"
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div
+                  aria-label="Interactive digital notebook"
+                  className="desk-scene"
+                  onKeyDown={handleNotebookKeyDown}
+                  tabIndex={0}
+                >
+                  <button
+                    aria-label="Previous notebook page"
+                    className="page-turn page-turn-left"
+                    disabled={visiblePageIndex === 0}
+                    onClick={goToPreviousNotebookPage}
+                    type="button"
+                  >
+                    ‹
+                  </button>
+                  <div className="open-notebook">
+                    <article className="notebook-page page-left">
+                      <NotebookPageContent
+                        appendixCount={appendixResources.length}
+                        currentTab={notebookTab}
+                        favoriteCount={favoriteResources.length}
+                        favoriteIds={favoriteIds}
+                        handoutCount={handoutResources.length}
+                        notebookSettings={notebookSettings}
+                        onJumpToTab={jumpToNotebookTab}
+                        onToggleFavorite={toggleFavorite}
+                        onTrackAction={trackResourceAction}
+                        page={currentNotebookPage}
+                        templateCount={templateResources.length}
+                      />
+                      <span className="page-number">
+                        Page {visiblePageIndex + 1}
+                      </span>
+                    </article>
+                    <div className="spiral-binding" aria-hidden="true">
+                      {Array.from({ length: 12 }).map((_, index) => (
+                        <span key={index} />
+                      ))}
+                    </div>
+                    <article
+                      className={`notebook-page page-right ${
+                        facingNotebookPage ? "" : "blank-page"
+                      }`}
+                    >
+                      {facingNotebookPage ? (
+                        <>
+                          <NotebookPageContent
+                            appendixCount={appendixResources.length}
+                            currentTab={notebookTab}
+                            favoriteCount={favoriteResources.length}
+                            favoriteIds={favoriteIds}
+                            handoutCount={handoutResources.length}
+                            notebookSettings={notebookSettings}
+                            onJumpToTab={jumpToNotebookTab}
+                            onToggleFavorite={toggleFavorite}
+                            onTrackAction={trackResourceAction}
+                            page={facingNotebookPage}
+                            templateCount={templateResources.length}
+                          />
+                          <span className="page-number">
+                            Page {visiblePageIndex + 2}
+                          </span>
+                        </>
+                      ) : null}
+                    </article>
+                  </div>
+                  <button
+                    aria-label="Next notebook page"
+                    className="page-turn page-turn-right"
+                    disabled={visiblePageIndex >= maxNotebookPageIndex}
+                    onClick={goToNextNotebookPage}
+                    type="button"
+                  >
+                    ›
+                  </button>
+                </div>
+
+                <div className="page-strip" aria-label="Notebook page thumbnails">
+                  {notebookPages.map((page, index) => (
+                    <button
+                      aria-current={index === visiblePageIndex ? "page" : undefined}
+                      key={page.id}
+                      onClick={() => goToNotebookPage(index)}
+                      type="button"
+                    >
+                      <span>{index + 1}</span>
+                      {getNotebookPageLabel(page, index)}
+                    </button>
+                  ))}
+                </div>
+
+                <details className="notebook-fallback">
+                  <summary>Resource index fallback</summary>
+                  <div className="fallback-list">
+                    {visibleNotebookResources.length ? (
+                      visibleNotebookResources.map((resource) => (
+                        <div className="fallback-row" key={resource.id}>
+                          <button
+                            aria-label={
+                              favoriteIds.has(resource.id)
+                                ? `Remove ${resource.title} from favorites`
+                                : `Add ${resource.title} to favorites`
+                            }
+                            aria-pressed={favoriteIds.has(resource.id)}
+                            className="icon-button"
+                            onClick={() => toggleFavorite(resource.id)}
+                            title={
+                              favoriteIds.has(resource.id)
+                                ? "Remove favorite"
+                                : "Add favorite"
+                            }
+                            type="button"
+                          >
+                            <HeartIcon size={16} />
+                          </button>
+                          <span>{resource.title}</span>
+                          <a
+                            href={`/api/resources/${resource.id}?action=view`}
+                            onClick={() => trackResourceAction(resource, "view")}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            View
+                          </a>
+                          <a
+                            href={`/api/resources/${resource.id}?action=download`}
+                            onClick={() =>
+                              trackResourceAction(resource, "download")
+                            }
+                          >
+                            Download
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No resources match the current search.</p>
+                    )}
+                  </div>
+                </details>
               </>
             ) : (
-              <p className="empty-state visible">
-                Registration is required before the notebook opens.
-              </p>
+              <div className="desk-scene locked-desk">
+                <div className="locked-notebook" role="status">
+                  <span className="locked-tab">CEALI</span>
+                  <h3>Register to unlock access to all notebook materials.</h3>
+                  <p>
+                    Once registered, this space becomes an interactive workbook
+                    with searchable resources, downloads, and favorites.
+                  </p>
+                  <a className="button button-primary" href="#registration">
+                    Access Training Materials
+                    <ArrowRightIcon size={18} />
+                  </a>
+                </div>
+              </div>
             )}
           </div>
         </section>
