@@ -2191,12 +2191,12 @@ svg {
 
   55% {
     opacity: 1;
-    transform: rotateY(72deg) translateX(1.8rem) scale(0.985);
+    transform: rotateY(-74deg) translateX(-1.65rem) scale(0.985);
   }
 
   100% {
     opacity: 0;
-    transform: rotateY(112deg) translateX(3.8rem) scale(0.96);
+    transform: rotateY(-114deg) translateX(-3.65rem) scale(0.96);
   }
 }
 
@@ -2301,6 +2301,211 @@ svg {
 
 .notebook-stage.is-open {
   max-width: 1200px;
+}
+
+.notebook-stage.is-open .open-notebook {
+  grid-template-columns: minmax(0, 1fr) 2.85rem minmax(0, 1fr);
+}
+
+.notebook-stage.is-open .spiral-binding {
+  align-content: space-evenly;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.46) 48%, rgba(0, 0, 0, 0.2)),
+    linear-gradient(180deg, rgba(107, 82, 38, 0.12), rgba(255, 249, 230, 0.28), rgba(80, 57, 26, 0.12));
+  box-shadow:
+    inset 0.5rem 0 0.9rem rgba(0, 0, 0, 0.13),
+    inset -0.5rem 0 0.9rem rgba(0, 0, 0, 0.13);
+  gap: 0;
+  justify-items: center;
+  overflow: visible;
+  padding: 1.25rem 0;
+  z-index: 5;
+}
+
+.notebook-stage.is-open .spiral-binding::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 245, 206, 0.46), transparent);
+  content: "";
+  inset: 0 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 0.38rem;
+}
+
+.notebook-stage.is-open .spiral-binding span {
+  background:
+    radial-gradient(ellipse at 35% 28%, rgba(255, 255, 255, 0.92), transparent 0.42rem),
+    linear-gradient(180deg, #fff6d7 0%, #d8bd72 28%, #87652a 52%, #f3d99a 73%, #6f4f1e 100%);
+  border: 1px solid rgba(48, 34, 14, 0.66);
+  border-radius: 999px;
+  box-shadow:
+    0 0.28rem 0.45rem rgba(32, 21, 8, 0.32),
+    inset 0 0.12rem 0.18rem rgba(255, 255, 255, 0.72),
+    inset 0 -0.18rem 0.25rem rgba(44, 29, 9, 0.48);
+  height: 1.12rem;
+  margin-left: -0.2rem;
+  position: relative;
+  width: 3.55rem;
+}
+
+.notebook-stage.is-open .spiral-binding span::before {
+  background:
+    linear-gradient(90deg, rgba(54, 38, 15, 0.18), rgba(246, 241, 230, 0.94), rgba(54, 38, 15, 0.18));
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0.08rem 0.16rem rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 244, 206, 0.26);
+  content: "";
+  inset: 0.24rem 0.46rem;
+  position: absolute;
+}
+
+.notebook-stage.is-open .spiral-binding span::after {
+  background: rgba(44, 29, 9, 0.22);
+  border-radius: 999px;
+  bottom: -0.36rem;
+  content: "";
+  filter: blur(0.12rem);
+  height: 0.28rem;
+  left: 0.32rem;
+  position: absolute;
+  right: 0.32rem;
+}
+
+.notebook-stage.is-open .page-left::after,
+.notebook-stage.is-open .page-right::before {
+  background-image: radial-gradient(circle, rgba(82, 54, 22, 0.22) 0 0.22rem, rgba(255, 255, 255, 0.72) 0.25rem, transparent 0.36rem);
+  background-position: center 1.35rem;
+  background-repeat: repeat-y;
+  background-size: 100% calc((100% - 2.7rem) / 13);
+  content: "";
+  opacity: 0.68;
+  pointer-events: none;
+  position: absolute;
+  top: 1.2rem;
+  bottom: 1.2rem;
+  width: 0.95rem;
+  z-index: 1;
+}
+
+.notebook-stage.is-open .page-left::after {
+  right: -0.48rem;
+}
+
+.notebook-stage.is-open .page-right::before {
+  left: -0.48rem;
+}
+
+.notebook-stage.is-open .document-page {
+  align-content: start;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 6rem),
+    linear-gradient(90deg, rgba(226, 162, 58, 0.26) 0 0.16rem, transparent 0.16rem);
+  border-radius: 6px;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 0.2rem 0.15rem 0.1rem;
+}
+
+.notebook-stage.is-open .document-topline {
+  border-bottom: 1px solid rgba(31, 31, 31, 0.12);
+  justify-content: flex-start;
+  padding: 0 0 0.65rem 0.85rem;
+  position: relative;
+}
+
+.notebook-stage.is-open .document-topline::after {
+  background: linear-gradient(90deg, var(--notebook-gold), transparent);
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0.85rem;
+  position: absolute;
+  width: min(14rem, 62%);
+}
+
+.notebook-stage.is-open .document-topline .pill {
+  background: transparent;
+  border: 1px solid rgba(14, 61, 62, 0.22);
+  color: var(--notebook-deep-teal);
+  padding-inline: 0;
+  text-transform: uppercase;
+}
+
+.notebook-stage.is-open .document-topline .resource-meta {
+  color: rgba(31, 31, 31, 0.58);
+}
+
+.notebook-stage.is-open .document-favorite {
+  background: rgba(246, 241, 230, 0.76);
+  margin-left: auto;
+}
+
+.notebook-stage.is-open .document-heading {
+  border-bottom: 1px solid rgba(31, 31, 31, 0.08);
+  gap: 0.38rem;
+  padding: 0.25rem 0.85rem 0.75rem;
+}
+
+.notebook-stage.is-open .document-heading .page-kicker {
+  color: var(--notebook-teal);
+}
+
+.notebook-stage.is-open .document-heading h3 {
+  font-size: clamp(1.42rem, 2.5vw, 2.18rem);
+  max-width: 15ch;
+}
+
+.notebook-stage.is-open .document-heading p:last-child {
+  color: rgba(31, 31, 31, 0.68);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.notebook-stage.is-open .document-preview-large {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.18)),
+    rgba(246, 241, 230, 0.32);
+  border: 0;
+  border-radius: 4px;
+  box-shadow:
+    0 0.9rem 1.2rem rgba(66, 44, 17, 0.08),
+    inset 0 0 0 1px rgba(31, 31, 31, 0.05);
+  margin: 0.15rem 0.55rem 0;
+  min-height: clamp(16rem, 26vw, 21rem);
+}
+
+.notebook-stage.is-open .document-preview-large::before {
+  background:
+    linear-gradient(90deg, rgba(31, 31, 31, 0.08), transparent 1.4rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.notebook-stage.is-open .document-preview-large img {
+  filter: saturate(0.98) contrast(1.01);
+  padding: 0.55rem;
+}
+
+.notebook-stage.is-open .document-actions {
+  align-self: end;
+  border-top: 1px solid rgba(31, 31, 31, 0.1);
+  gap: 0.6rem;
+  margin: 0.35rem 0.85rem 0;
+  padding-top: 0.75rem;
+}
+
+.notebook-stage.is-open .document-actions .button {
+  border-radius: 6px;
+  box-shadow: 0 0.35rem 0.65rem rgba(31, 31, 31, 0.08);
+  min-height: 2.65rem;
+}
+
+.notebook-stage.is-open .locked-page-note {
+  margin: 0.1rem 0.85rem 0;
 }
 
 .closed-notebook-cover,
@@ -2467,7 +2672,7 @@ svg {
   pointer-events: none;
   position: absolute;
   text-align: center;
-  transform-origin: right center;
+  transform-origin: left center;
   z-index: 8;
 }
 

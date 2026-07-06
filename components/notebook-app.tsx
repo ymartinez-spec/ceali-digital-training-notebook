@@ -242,7 +242,13 @@ function NotebookResourcePage({
         </button>
       </div>
       <div className="document-heading">
-        <p className="page-kicker">Notebook Resource</p>
+        <p className="page-kicker">
+          {resource.kind === "appendix"
+            ? "Appendix Resource"
+            : resource.kind === "template"
+              ? "Workbook Template"
+              : "Presentation Material"}
+        </p>
         <h3>{resource.title}</h3>
         <p>{resource.description}</p>
       </div>
@@ -1115,7 +1121,7 @@ export default function NotebookApp({
                         </span>
                       </article>
                       <div className="spiral-binding" aria-hidden="true">
-                        {Array.from({ length: 13 }).map((_, index) => (
+                        {Array.from({ length: 14 }).map((_, index) => (
                           <span key={index} />
                         ))}
                       </div>
