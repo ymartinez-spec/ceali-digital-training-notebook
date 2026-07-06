@@ -3,7 +3,11 @@
 import Image from "next/image";
 import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { NotebookSettings, ResourceItem } from "@/lib/resources";
+import type {
+  NotebookSettings,
+  ResourceItem,
+  ResourceSection,
+} from "@/lib/resources";
 import {
   ArrowRightIcon,
   DownloadIcon,
@@ -29,15 +33,18 @@ type RegistrationForm = {
   consent: boolean;
 };
 
-type NotebookTab = "presentation" | "template" | "appendix" | "favorites";
+type NotebookTab = ResourceSection | "favorites";
 
 const notebookTabs: { id: NotebookTab; label: string }[] = [
+  { id: "templates", label: "Templates" },
   {
-    id: "presentation",
-    label: "Presentation Materials",
+    id: "documentation",
+    label: "Documentation Examples",
   },
-  { id: "template", label: "Templates" },
+  { id: "conversation", label: "Conversation Planning" },
+  { id: "handouts", label: "Handouts" },
   { id: "appendix", label: "Appendix" },
+  { id: "support", label: "Support Services" },
   { id: "favorites", label: "Favorites" },
 ];
 
@@ -60,7 +67,6 @@ type NotebookPage =
       id: string;
       kind: "resource";
       resource: ResourceItem;
-      section: NotebookTab;
     };
 
 declare global {
@@ -145,6 +151,19 @@ function resourceMatches(resource: ResourceItem, query: string) {
     .join(" ")
     .toLowerCase();
   return haystack.includes(query.trim().toLowerCase());
+}
+
+function formatTabCount(tab: NotebookTab, count: number) {
+  if (tab === "favorites") {
+    return `${count} saved`;
+  }
+  if (tab === "templates") {
+    return `${count} forms`;
+  }
+  if (tab === "appendix") {
+    return `${count} word banks`;
+  }
+  return `${count} ${count === 1 ? "file" : "files"}`;
 }
 
 function trackEvent(eventName: string, params: Record<string, string>) {
@@ -242,13 +261,7 @@ function NotebookResourcePage({
         </button>
       </div>
       <div className="document-heading">
-        <p className="page-kicker">
-          {resource.kind === "appendix"
-            ? "Appendix Resource"
-            : resource.kind === "template"
-              ? "Workbook Template"
-              : "Presentation Material"}
-        </p>
+        <p className="page-kicker">{notebookTabLabels[resource.section]}</p>
         <h3>{resource.title}</h3>
         <p>{resource.description}</p>
       </div>
@@ -306,28 +319,22 @@ function NotebookResourcePage({
 }
 
 function NotebookPageContent({
-  appendixCount,
   currentTab,
   favoriteIds,
-  favoriteCount,
   hasNotebookAccess,
-  handoutCount,
   notebookSettings,
   page,
-  templateCount,
+  tabCounts,
   onJumpToTab,
   onToggleFavorite,
   onTrackAction,
 }: {
-  appendixCount: number;
   currentTab: NotebookTab;
   favoriteIds: Set<string>;
-  favoriteCount: number;
   hasNotebookAccess: boolean;
-  handoutCount: number;
   notebookSettings: NotebookSettings;
   page: NotebookPage;
-  templateCount: number;
+  tabCounts: Record<NotebookTab, number>;
   onJumpToTab: (tab: NotebookTab) => void;
   onToggleFavorite: (id: string) => void;
   onTrackAction: (resource: ResourceItem, action: "view" | "download") => void;
@@ -371,21 +378,16 @@ function NotebookPageContent({
         <p className="page-kicker">Index</p>
         <h3>Table of Contents</h3>
         <div className="toc-list">
-          {[
-            ["presentation", "Presentation Materials", `${handoutCount} files`],
-            ["template", "Templates", `${templateCount} forms`],
-            ["appendix", "Appendix", `${appendixCount} word banks`],
-            ["favorites", "Favorites", `${favoriteCount} saved`],
-          ].map(([tab, label, count]) => (
+          {notebookTabs.map((tab) => (
             <button
-              aria-current={currentTab === tab ? "page" : undefined}
-              key={tab}
-              onClick={() => onJumpToTab(tab as NotebookTab)}
+              aria-current={currentTab === tab.id ? "page" : undefined}
+              key={tab.id}
+              onClick={() => onJumpToTab(tab.id)}
               type="button"
             >
-              <span className={`toc-dot tab-${tab}`} aria-hidden="true" />
-              <span>{label}</span>
-              <strong>{count}</strong>
+              <span className={`toc-dot tab-${tab.id}`} aria-hidden="true" />
+              <span>{tab.label}</span>
+              <strong>{formatTabCount(tab.id, tabCounts[tab.id])}</strong>
             </button>
           ))}
         </div>
@@ -497,7 +499,7 @@ export default function NotebookApp({
   >(null);
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState("");
-  const [notebookTab, setNotebookTab] = useState<NotebookTab>("presentation");
+  const [notebookTab, setNotebookTab] = useState<NotebookTab>("templates");
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [notebookOpened, setNotebookOpened] = useState(false);
   const [coverAnimating, setCoverAnimating] = useState(false);
@@ -631,37 +633,47 @@ export default function NotebookApp({
     });
   }
 
+  const orderedNotebookResources = useMemo(
+    () => [...allResources].sort((a, b) => a.order - b.order),
+    [allResources],
+  );
   const favoriteResources = useMemo(
-    () => allResources.filter((resource) => favoriteIds.has(resource.id)),
-    [allResources, favoriteIds],
+    () => orderedNotebookResources.filter((resource) => favoriteIds.has(resource.id)),
+    [orderedNotebookResources, favoriteIds],
   );
-  const templateResources = useMemo(
-    () => handoutResources.filter((resource) => resource.kind === "template"),
-    [handoutResources],
-  );
-  const selectedTabResources = useMemo(() => {
-    if (notebookTab === "appendix") {
-      return appendixResources;
-    }
-    if (notebookTab === "favorites") {
-      return favoriteResources;
-    }
-    if (notebookTab === "template") {
-      return templateResources;
-    }
-    return handoutResources;
-  }, [
-    appendixResources,
-    favoriteResources,
-    handoutResources,
-    notebookTab,
-    templateResources,
-  ]);
-  const visibleNotebookResources = useMemo(
+  const searchedNotebookResources = useMemo(
     () =>
-      selectedTabResources.filter((resource) => resourceMatches(resource, query)),
-    [query, selectedTabResources],
+      orderedNotebookResources.filter((resource) =>
+        resourceMatches(resource, query),
+      ),
+    [orderedNotebookResources, query],
   );
+  const searchedFavoriteResources = useMemo(
+    () =>
+      favoriteResources.filter((resource) => resourceMatches(resource, query)),
+    [favoriteResources, query],
+  );
+  const visibleNotebookResources =
+    notebookTab === "favorites"
+      ? searchedFavoriteResources
+      : searchedNotebookResources;
+  const tabCounts = useMemo(() => {
+    const counts: Record<NotebookTab, number> = {
+      appendix: 0,
+      conversation: 0,
+      documentation: 0,
+      favorites: favoriteResources.length,
+      handouts: 0,
+      support: 0,
+      templates: 0,
+    };
+
+    for (const resource of orderedNotebookResources) {
+      counts[resource.section] += 1;
+    }
+
+    return counts;
+  }, [favoriteResources.length, orderedNotebookResources]);
   const notebookPages = useMemo<NotebookPage[]>(() => {
     const coverPages: NotebookPage[] = [
       { id: "toc", kind: "toc" },
@@ -677,12 +689,11 @@ export default function NotebookApp({
           id: `resource-${resource.id}`,
           kind: "resource",
           resource,
-          section: notebookTab,
         }))
       : [
           {
             emptyMessage: query.trim()
-              ? "No matching resources found on this tab."
+              ? "No matching resources found in this notebook view."
               : notebookTab === "favorites"
                 ? "Favorite resources will appear here after you tap the heart on a page."
                 : "No resources are available in this notebook section yet.",
@@ -711,6 +722,31 @@ export default function NotebookApp({
   const fallbackNotebookPage: NotebookPage = { id: "cover", kind: "cover" };
   const leftNotebookPage = notebookPages[visiblePageIndex] ?? fallbackNotebookPage;
   const rightNotebookPage = notebookPages[visiblePageIndex + 1] ?? null;
+  const activeNotebookTab = useMemo<NotebookTab>(() => {
+    if (notebookTab === "favorites") {
+      return "favorites";
+    }
+
+    const visibleSections = [leftNotebookPage, rightNotebookPage]
+      .filter((page): page is Extract<NotebookPage, { kind: "resource" }> =>
+        page?.kind === "resource",
+      )
+      .map((page) => page.resource.section);
+
+    if (visibleSections.includes(notebookTab as ResourceSection)) {
+      return notebookTab;
+    }
+
+    if (rightNotebookPage?.kind === "resource") {
+      return rightNotebookPage.resource.section;
+    }
+
+    if (leftNotebookPage.kind === "resource") {
+      return leftNotebookPage.resource.section;
+    }
+
+    return notebookTab;
+  }, [leftNotebookPage, notebookTab, rightNotebookPage]);
   const appsScriptWebAppUrl =
     process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || "";
   const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
@@ -757,9 +793,18 @@ export default function NotebookApp({
   }
 
   function jumpToNotebookTab(tab: NotebookTab) {
+    const resourceIndex =
+      tab === "favorites"
+        ? 0
+        : searchedNotebookResources.findIndex(
+            (resource) => resource.section === tab,
+          );
+
     setNotebookTab(tab);
     setPageTurnDirection("jump");
-    setCurrentPageIndex(hasNotebookAccess ? 2 : 0);
+    setCurrentPageIndex(
+      hasNotebookAccess ? Math.max(resourceIndex, 0) + 2 : 0,
+    );
   }
 
   function handleNotebookKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -1103,18 +1148,15 @@ export default function NotebookApp({
                     >
                       <article className="notebook-page page-left">
                         <NotebookPageContent
-                          appendixCount={appendixResources.length}
-                          currentTab={notebookTab}
-                        favoriteCount={favoriteResources.length}
-                        favoriteIds={favoriteIds}
-                        hasNotebookAccess={hasNotebookAccess}
-                        handoutCount={handoutResources.length}
-                        notebookSettings={notebookSettings}
-                        onJumpToTab={jumpToNotebookTab}
-                        onToggleFavorite={toggleFavorite}
+                          currentTab={activeNotebookTab}
+                          favoriteIds={favoriteIds}
+                          hasNotebookAccess={hasNotebookAccess}
+                          notebookSettings={notebookSettings}
+                          onJumpToTab={jumpToNotebookTab}
+                          onToggleFavorite={toggleFavorite}
                           onTrackAction={trackResourceAction}
                           page={leftNotebookPage}
-                          templateCount={templateResources.length}
+                          tabCounts={tabCounts}
                         />
                         <span className="page-number">
                           Page {visiblePageIndex + 1}
@@ -1129,18 +1171,15 @@ export default function NotebookApp({
                         {rightNotebookPage ? (
                           <>
                             <NotebookPageContent
-                              appendixCount={appendixResources.length}
-                              currentTab={notebookTab}
-                              favoriteCount={favoriteResources.length}
+                              currentTab={activeNotebookTab}
                               favoriteIds={favoriteIds}
                               hasNotebookAccess={hasNotebookAccess}
-                              handoutCount={handoutResources.length}
                               notebookSettings={notebookSettings}
                               onJumpToTab={jumpToNotebookTab}
                               onToggleFavorite={toggleFavorite}
                               onTrackAction={trackResourceAction}
                               page={rightNotebookPage}
-                              templateCount={templateResources.length}
+                              tabCounts={tabCounts}
                             />
                             <span className="page-number">
                               Page {visiblePageIndex + 2}
@@ -1155,7 +1194,7 @@ export default function NotebookApp({
                     <div className="divider-tabs" aria-label="Notebook sections">
                       {notebookTabs.map((tab) => (
                         <button
-                          aria-pressed={notebookTab === tab.id}
+                          aria-pressed={activeNotebookTab === tab.id}
                           className={`divider-tab tab-${tab.id}`}
                           disabled={!hasNotebookAccess}
                           key={tab.id}

@@ -15,7 +15,9 @@
     {
       "id": "template-01-general-child-observation",
       "kind": "template",
-      "title": "General Child Observation Form",
+      "section": "templates",
+      "order": 1,
+      "title": "Template 1: General Child Observation Form",
       "description": "A structured template for recording objective facts about a child, setting, time, and observed patterns.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-01-general-child-observation.pdf",
@@ -31,6 +33,8 @@
     {
       "id": "template-02-abc-behavior-observation",
       "kind": "template",
+      "section": "templates",
+      "order": 2,
       "title": "ABC Behavior Observation Form",
       "description": "Documents antecedent, behavior, and consequence patterns using neutral, observable language.",
       "pages": "2 pages",
@@ -47,7 +51,9 @@
     {
       "id": "template-03-frequency-count",
       "kind": "template",
-      "title": "Frequency Count Form",
+      "section": "templates",
+      "order": 3,
+      "title": "Template 3: Frequency Count Form",
       "description": "Tracks how often a specific behavior or event occurs across routines and time blocks.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-03-frequency-count.pdf",
@@ -63,7 +69,9 @@
     {
       "id": "template-04-transition-observation",
       "kind": "template",
-      "title": "Transition Observation Form",
+      "section": "templates",
+      "order": 4,
+      "title": "Template 4: Transition Observation Form",
       "description": "Captures a child's response during activity changes, routines, arrival, dismissal, and cleanup.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-04-transition-observation.pdf",
@@ -79,7 +87,9 @@
     {
       "id": "template-05-social-emotional-observation",
       "kind": "template",
-      "title": "Social-Emotional Observation Form",
+      "section": "templates",
+      "order": 5,
+      "title": "Template 5: Social-Emotional Observation Form",
       "description": "Supports documentation of self-regulation, peer relationships, emotional expression, and strengths.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-05-social-emotional-observation.pdf",
@@ -94,7 +104,9 @@
     {
       "id": "template-06-communication-observation",
       "kind": "template",
-      "title": "Communication Observation Form",
+      "section": "templates",
+      "order": 6,
+      "title": "Template 6: Communication Observation Form",
       "description": "Records expressive and receptive communication, gestures, language attempts, and supports used.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-06-communication-observation.pdf",
@@ -110,7 +122,9 @@
     {
       "id": "template-07-sensory-processing-observation",
       "kind": "template",
-      "title": "Sensory Processing Observation Form",
+      "section": "templates",
+      "order": 7,
+      "title": "Template 7: Sensory Processing Observation Form",
       "description": "Helps document environmental sensory input and the child's observable response without labeling.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-07-sensory-processing-observation.pdf",
@@ -126,7 +140,9 @@
     {
       "id": "template-08-physical-mobility-observation",
       "kind": "template",
-      "title": "Physical or Mobility Observation Form",
+      "section": "templates",
+      "order": 8,
+      "title": "Template 8: Physical or Mobility Observation Form",
       "description": "Captures gross motor, fine motor, and physical participation observations with needed supports.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-08-physical-mobility-observation.pdf",
@@ -142,7 +158,9 @@
     {
       "id": "template-09-attention-learning-observation",
       "kind": "template",
-      "title": "Attention and Learning Observation Form",
+      "section": "templates",
+      "order": 9,
+      "title": "Template 9: Attention and Learning Observation Form",
       "description": "Records focus, task completion, engagement, learning approaches, and strategies that helped.",
       "pages": "2 pages",
       "href": "/resources/handouts/template-09-attention-learning-observation.pdf",
@@ -156,122 +174,47 @@
       ]
     },
     {
-      "id": "documentation-examples-social-emotional-physical",
+      "id": "documentation-examples-subjective-vs-objective",
       "kind": "handout",
-      "title": "Objective Documentation Examples: Social-Emotional & Physical",
-      "description": "Side-by-side examples for replacing subjective wording with factual observation language.",
-      "pages": "1 page",
-      "href": "/resources/handouts/documentation-examples-social-emotional-physical.pdf",
-      "preview": "/previews/handouts/documentation-examples-social-emotional-physical.png",
-      "driveFileId": "1sulV7M1sY1nLqQL3OuVzmLnBn1RcCv9d",
+      "section": "documentation",
+      "order": 10,
+      "title": "Documentation Examples: Subjective vs. Objective Language",
+      "description": "Full source-document examples for replacing subjective wording with factual, observable documentation.",
+      "pages": "3 pages",
+      "href": "/resources/handouts/documentation-examples-subjective-vs-objective.pdf",
+      "preview": "/previews/handouts/documentation-examples-subjective-vs-objective.png",
       "keywords": [
         "objective",
         "subjective",
-        "social emotional",
-        "physical"
+        "documentation",
+        "examples",
+        "language"
       ]
     },
     {
-      "id": "documentation-examples-attention-sensory-communication",
-      "kind": "handout",
-      "title": "Objective Documentation Examples: Attention, Sensory & Communication",
-      "description": "Practice examples for writing measurable notes about focus, sensory responses, and communication.",
-      "pages": "1 page",
-      "href": "/resources/handouts/documentation-examples-attention-sensory-communication.pdf",
-      "preview": "/previews/handouts/documentation-examples-attention-sensory-communication.png",
-      "driveFileId": "1wSb80cmWCfy0zbV2_x9zhuwySU-r2sBR",
-      "keywords": [
-        "attention",
-        "sensory",
-        "communication",
-        "examples"
-      ]
-    },
-    {
-      "id": "documentation-examples-transitions-peer-interaction",
-      "kind": "handout",
-      "title": "Objective Documentation Examples: Transitions & Peer Interaction",
-      "description": "Objective language examples for transitions, group participation, and peer interactions.",
-      "pages": "1 page",
-      "href": "/resources/handouts/documentation-examples-transitions-peer-interaction.pdf",
-      "preview": "/previews/handouts/documentation-examples-transitions-peer-interaction.png",
-      "driveFileId": "1ILVdgdQlHn2-RQQOnZqILrsezquQmlkU",
-      "keywords": [
-        "transitions",
-        "peer interaction",
-        "objective",
-        "examples"
-      ]
-    },
-    {
-      "id": "conversation-planning-preparation-observations",
+      "id": "conversation-planning-worksheet",
       "kind": "template",
-      "title": "Conversation Planning Worksheet: Preparation & Observations",
-      "description": "Planning pages for strengths, purpose, family context, and objective observations to share.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/conversation-planning-preparation-observations.pdf",
-      "preview": "/previews/handouts/conversation-planning-preparation-observations.png",
-      "driveFileId": "12x8zBRLl2z3O6NBtjG_kiwpbN2MOWYmD",
+      "section": "conversation",
+      "order": 11,
+      "title": "Conversation Planning Worksheet",
+      "description": "Complete planning worksheet for preparing, sharing observations, inviting family input, and documenting next steps.",
+      "pages": "4 pages",
+      "href": "/resources/handouts/conversation-planning-worksheet.pdf",
+      "preview": "/previews/handouts/conversation-planning-worksheet.png",
       "keywords": [
         "conversation",
         "planning",
         "worksheet",
-        "observations"
-      ]
-    },
-    {
-      "id": "conversation-planning-supports-next-steps",
-      "kind": "template",
-      "title": "Conversation Planning Worksheet: Supports & Next Steps",
-      "description": "Planning pages for family questions, supports already tried, next steps, notes, and follow-up.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/conversation-planning-supports-next-steps.pdf",
-      "preview": "/previews/handouts/conversation-planning-supports-next-steps.png",
-      "driveFileId": "17PJTamV48C0DuiCP_jxqZekWoVkisEaI",
-      "keywords": [
-        "supports",
-        "next steps",
-        "follow up",
-        "families"
-      ]
-    },
-    {
-      "id": "local-state-support-services-ei-cpse-health",
-      "kind": "handout",
-      "title": "NY Support Services: EI, CPSE & Health Providers",
-      "description": "Customizable support contacts for Early Intervention, CPSE, pediatricians, and school districts.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/local-state-support-services-ei-cpse-health.pdf",
-      "preview": "/previews/handouts/local-state-support-services-ei-cpse-health.png",
-      "driveFileId": "1byT6ipjQEvBw1B-eCG87LSBE6d7MYZU7",
-      "keywords": [
-        "support",
-        "ei",
-        "cpse",
-        "health",
-        "new york"
-      ]
-    },
-    {
-      "id": "local-state-support-services-screening-family-supports",
-      "kind": "handout",
-      "title": "NY Support Services: Screening, Mental Health & Family Supports",
-      "description": "Referral resource list for screening, mental health consultation, county health, and family support organizations.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/local-state-support-services-screening-family-supports.pdf",
-      "preview": "/previews/handouts/local-state-support-services-screening-family-supports.png",
-      "driveFileId": "1oiClaCDEr8Oz-s-byXracaPX5ys4jDNG",
-      "keywords": [
-        "screening",
-        "mental health",
-        "family support",
-        "resources"
+        "families",
+        "next steps"
       ]
     },
     {
       "id": "handout-01-objective-observation-vs-opinion",
       "kind": "handout",
-      "title": "Objective Observation vs. Opinion",
+      "section": "handouts",
+      "order": 12,
+      "title": "Handout 1: Objective Observation vs. Opinion",
       "description": "Reference and practice activity for identifying objective language and rewriting opinion statements.",
       "pages": "3 pages",
       "href": "/resources/handouts/handout-01-objective-observation-vs-opinion.pdf",
@@ -287,7 +230,9 @@
     {
       "id": "handout-02-child-observation-documentation-template",
       "kind": "template",
-      "title": "Child Observation Documentation Template",
+      "section": "handouts",
+      "order": 13,
+      "title": "Handout 2: Child Observation Documentation Template",
       "description": "Printable template for documenting an individual observation, ABC details, supports, and follow-up.",
       "pages": "2 pages",
       "href": "/resources/handouts/handout-02-child-observation-documentation-template.pdf",
@@ -303,7 +248,9 @@
     {
       "id": "handout-03-conversation-planning-guide",
       "kind": "handout",
-      "title": "Conversation Planning Guide",
+      "section": "handouts",
+      "order": 14,
+      "title": "Handout 3: Conversation Planning Guide",
       "description": "Step-by-step guidance for opening, framing, responding, and closing family conversations.",
       "pages": "2 pages",
       "href": "/resources/handouts/handout-03-conversation-planning-guide.pdf",
@@ -319,7 +266,9 @@
     {
       "id": "handout-04-strengths-based-language-cheat-sheet",
       "kind": "handout",
-      "title": "Strengths-Based Language Cheat Sheet",
+      "section": "handouts",
+      "order": 15,
+      "title": "Handout 4: Strengths-Based Language Cheat Sheet",
       "description": "Professional phrases for leading with strengths, asking questions, expressing concern, and recommending supports.",
       "pages": "2 pages",
       "href": "/resources/handouts/handout-04-strengths-based-language-cheat-sheet.pdf",
@@ -333,43 +282,67 @@
       ]
     },
     {
-      "id": "local-referral-resource-core-referrals",
+      "id": "handout-05-local-referral-support-resource-list-ny",
       "kind": "handout",
-      "title": "Local Referral Resource: Core Referrals",
-      "description": "Family-facing referral resource for EI, CPSE, pediatrician, local district, and county contacts.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/local-referral-resource-core-referrals.pdf",
-      "preview": "/previews/handouts/local-referral-resource-core-referrals.png",
-      "driveFileId": "1sJmaLjwAt-WV8OgpJLpU2NvthKb2t3Sw",
+      "section": "handouts",
+      "order": 16,
+      "title": "Handout 5: Local Referral and Support Resource List — New York State",
+      "description": "Customizable family-facing referral and support resource list for New York State programs.",
+      "pages": "4 pages",
+      "href": "/resources/handouts/handout-05-local-referral-support-resource-list-ny.pdf",
+      "preview": "/previews/handouts/handout-05-local-referral-support-resource-list-ny.png",
       "keywords": [
         "referral",
         "support",
         "family",
-        "contacts"
+        "contacts",
+        "new york"
       ]
     },
     {
-      "id": "local-referral-resource-community-contacts",
+      "id": "local-state-support-services-ny",
       "kind": "handout",
-      "title": "Local Referral Resource: Community & Program Contacts",
-      "description": "Customizable referral pages for CCR&R, OCFS, mental health consultation, and program-specific contacts.",
-      "pages": "2 pages",
-      "href": "/resources/handouts/local-referral-resource-community-contacts.pdf",
-      "preview": "/previews/handouts/local-referral-resource-community-contacts.png",
-      "driveFileId": "1r414_NvfN0OL0fBElNPO7Ah7m7itfGTX",
+      "section": "support",
+      "order": 32,
+      "title": "Local and State Support Services List — New York State",
+      "description": "Source-document support services list for EI, CPSE, pediatricians, school districts, CCR&R, OCFS, and family supports.",
+      "pages": "4 pages",
+      "href": "/resources/handouts/local-state-support-services-ny.pdf",
+      "preview": "/previews/handouts/local-state-support-services-ny.png",
       "keywords": [
-        "community",
-        "program contacts",
+        "support services",
+        "early intervention",
+        "cpse",
+        "ocfs",
         "ccr",
-        "ocfs"
+        "new york"
       ]
     }
   ],
   "appendix": [
     {
+      "id": "appendix-00-professional-word-banks-overview",
+      "kind": "appendix",
+      "section": "appendix",
+      "order": 17,
+      "title": "Appendix Cover/Intro: Professional Word Banks",
+      "description": "Introductory overview for professional word banks used in early childhood observation documentation.",
+      "pages": "1 page",
+      "href": "/resources/appendix/appendix-00-professional-word-banks-overview.pdf",
+      "preview": "/previews/appendix/appendix-00-professional-word-banks-overview.png",
+      "keywords": [
+        "appendix",
+        "word banks",
+        "documentation",
+        "overview"
+      ]
+    },
+    {
       "id": "appendix-01-observable-behaviors-actions",
       "kind": "appendix",
-      "title": "Observable Behaviors & Actions",
+      "section": "appendix",
+      "order": 18,
+      "title": "1. Observable Behaviors & Actions",
       "description": "Objective verbs and phrases for describing movement, social actions, communication, and daily routines.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-01-observable-behaviors-actions.pdf",
@@ -385,7 +358,9 @@
     {
       "id": "appendix-02-social-emotional-development",
       "kind": "appendix",
-      "title": "Social-Emotional Development",
+      "section": "appendix",
+      "order": 19,
+      "title": "2. Social-Emotional Development",
       "description": "Language for documenting emotional responses, self-regulation, relationships, and adult support.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-02-social-emotional-development.pdf",
@@ -400,7 +375,9 @@
     {
       "id": "appendix-03-communication-language",
       "kind": "appendix",
-      "title": "Communication & Language",
+      "section": "appendix",
+      "order": 20,
+      "title": "3. Communication & Language",
       "description": "Objective language for expressive, receptive, nonverbal, and social communication observations.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-03-communication-language.pdf",
@@ -416,7 +393,9 @@
     {
       "id": "appendix-04-sensory-inputs",
       "kind": "appendix",
-      "title": "Sensory Inputs",
+      "section": "appendix",
+      "order": 21,
+      "title": "4. Sensory Inputs",
       "description": "Terms for documenting sounds, visual conditions, tactile materials, movement, smell, and taste.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-04-sensory-inputs.pdf",
@@ -433,7 +412,9 @@
     {
       "id": "appendix-05-sensory-responses-outputs",
       "kind": "appendix",
-      "title": "Sensory Responses & Outputs",
+      "section": "appendix",
+      "order": 22,
+      "title": "5. Sensory Responses & Outputs",
       "description": "Language for describing how a child responds to sensory experiences without diagnostic labels.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-05-sensory-responses-outputs.pdf",
@@ -449,7 +430,9 @@
     {
       "id": "appendix-06-attention-learning",
       "kind": "appendix",
-      "title": "Attention & Learning",
+      "section": "appendix",
+      "order": 23,
+      "title": "6. Attention & Learning",
       "description": "Objective terms for engagement, task completion, following directions, memory, and learning support.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-06-attention-learning.pdf",
@@ -465,7 +448,9 @@
     {
       "id": "appendix-07-physical-motor-development",
       "kind": "appendix",
-      "title": "Physical & Motor Development",
+      "section": "appendix",
+      "order": 24,
+      "title": "7. Physical & Motor Development",
       "description": "Language for gross motor, fine motor, adaptive, participation, stamina, and positioning observations.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-07-physical-motor-development.pdf",
@@ -481,7 +466,9 @@
     {
       "id": "appendix-08-transition-routine-responses",
       "kind": "appendix",
-      "title": "Transition & Routine Responses",
+      "section": "appendix",
+      "order": 25,
+      "title": "8. Transition & Routine Responses",
       "description": "Terms for documenting how children move through daily routines, warnings, visuals, and supports.",
       "pages": "1 page",
       "href": "/resources/appendix/appendix-08-transition-routine-responses.pdf",
@@ -497,7 +484,9 @@
     {
       "id": "appendix-09-peer-interaction",
       "kind": "appendix",
-      "title": "Peer Interaction",
+      "section": "appendix",
+      "order": 26,
+      "title": "9. Peer Interaction",
       "description": "Objective terms for proximity, awareness, cooperative play, conflict, repair, and peer communication.",
       "pages": "1 page",
       "href": "/resources/appendix/appendix-09-peer-interaction.pdf",
@@ -513,7 +502,9 @@
     {
       "id": "appendix-10-adult-interaction-response",
       "kind": "appendix",
-      "title": "Adult Interaction & Response",
+      "section": "appendix",
+      "order": 27,
+      "title": "10. Adult Interaction & Response",
       "description": "Language for documenting adult support seeking, proximity, prompts, redirection, and response patterns.",
       "pages": "1 page",
       "href": "/resources/appendix/appendix-10-adult-interaction-response.pdf",
@@ -529,7 +520,9 @@
     {
       "id": "appendix-11-emotional-expression",
       "kind": "appendix",
-      "title": "Emotional Expression",
+      "section": "appendix",
+      "order": 28,
+      "title": "11. Emotional Expression",
       "description": "Positively framed language for documenting observable signs of joy, frustration, sadness, pride, and worry.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-11-emotional-expression.pdf",
@@ -546,7 +539,9 @@
     {
       "id": "appendix-12-strengths-positive-descriptors",
       "kind": "appendix",
-      "title": "Strengths & Positive Descriptors",
+      "section": "appendix",
+      "order": 29,
+      "title": "12. Strengths & Positive Descriptors",
       "description": "Strength-based language for character, learning, social, communication, motor, and regulation strengths.",
       "pages": "2 pages",
       "href": "/resources/appendix/appendix-12-strengths-positive-descriptors.pdf",
@@ -560,20 +555,37 @@
       ]
     },
     {
-      "id": "appendix-13-strategies-supports-documentation-phrases",
+      "id": "appendix-13-strategies-supports",
       "kind": "appendix",
-      "title": "Strategies, Supports & Documentation Phrases",
-      "description": "Terms for supports plus ready-to-use sentence starters for observations, patterns, family notes, and follow-up.",
-      "pages": "4 pages",
-      "href": "/resources/appendix/appendix-13-strategies-supports-documentation-phrases.pdf",
-      "preview": "/previews/appendix/appendix-13-strategies-supports-documentation-phrases.png",
-      "driveFileId": "1CwCOAkUfDI0ZcYXSLEkkXI77k699CvqX",
+      "section": "appendix",
+      "order": 30,
+      "title": "13. Strategies & Supports",
+      "description": "Professional language for documenting prevention, visual, sensory, communication, social-emotional, and adult supports.",
+      "pages": "2 pages",
+      "href": "/resources/appendix/appendix-13-strategies-supports.pdf",
+      "preview": "/previews/appendix/appendix-13-strategies-supports.png",
       "keywords": [
         "strategies",
         "supports",
-        "sentence starters",
-        "documentation",
+        "visual supports",
         "family collaboration"
+      ]
+    },
+    {
+      "id": "appendix-14-documentation-phrases-sentence-starters",
+      "kind": "appendix",
+      "section": "appendix",
+      "order": 31,
+      "title": "14. Documentation Phrases & Sentence Starters",
+      "description": "Ready-to-use sentence starters for observations, patterns, strategies, family notes, strengths, and follow-up.",
+      "pages": "2 pages",
+      "href": "/resources/appendix/appendix-14-documentation-phrases-sentence-starters.pdf",
+      "preview": "/previews/appendix/appendix-14-documentation-phrases-sentence-starters.png",
+      "keywords": [
+        "documentation",
+        "phrases",
+        "sentence starters",
+        "follow up"
       ]
     }
   ]

@@ -1,10 +1,19 @@
 import catalog from "@/content/resources.json";
 
 export type ResourceKind = "template" | "handout" | "appendix";
+export type ResourceSection =
+  | "templates"
+  | "documentation"
+  | "conversation"
+  | "handouts"
+  | "appendix"
+  | "support";
 
 export type ResourceItem = {
   id: string;
   kind: ResourceKind;
+  section: ResourceSection;
+  order: number;
   title: string;
   description: string;
   pages: string;

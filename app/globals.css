@@ -1271,12 +1271,26 @@ a {
   background: var(--notebook-teal);
 }
 
+.tab-documentation,
+.tab-handouts,
+.tab-templates {
+  background: var(--notebook-teal);
+}
+
 .tab-template {
+  background: var(--notebook-blue);
+}
+
+.tab-conversation {
   background: var(--notebook-blue);
 }
 
 .tab-appendix {
   background: var(--notebook-brown);
+}
+
+.tab-support {
+  background: var(--notebook-cover);
 }
 
 .tab-favorites {
@@ -2760,12 +2774,26 @@ svg {
   background: #159092;
 }
 
+.tab-documentation[aria-pressed="true"],
+.tab-handouts[aria-pressed="true"],
+.tab-templates[aria-pressed="true"] {
+  background: #159092;
+}
+
 .tab-template[aria-pressed="true"] {
+  background: #376dad;
+}
+
+.tab-conversation[aria-pressed="true"] {
   background: #376dad;
 }
 
 .tab-appendix[aria-pressed="true"] {
   background: #be672f;
+}
+
+.tab-support[aria-pressed="true"] {
+  background: #0e4a44;
 }
 
 .tab-favorites[aria-pressed="true"] {
