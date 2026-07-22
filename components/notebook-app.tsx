@@ -13,8 +13,6 @@ import {
   DownloadIcon,
   EyeIcon,
   HeartIcon,
-  LinkIcon,
-  PhoneIcon,
   SearchIcon,
 } from "@/components/icons";
 
@@ -510,9 +508,6 @@ export default function NotebookApp({
     () => parseFavorites(favoriteSnapshot),
     [favoriteSnapshot],
   );
-  const [adminKey, setAdminKey] = useState("");
-  const [adminStatus, setAdminStatus] = useState("");
-
   useEffect(() => {
     const sessionId = getSessionId();
     void fetch("/api/analytics", {
@@ -606,6 +601,10 @@ export default function NotebookApp({
       trackEvent("registration_complete", {
         organization: form.organization || "not provided",
       });
+      setNotebookTab("templates");
+      setCurrentPageIndex(0);
+      setNotebookOpened(true);
+      setPageTurnDirection("jump");
       setTimeout(() => {
         document.getElementById("notebook")?.scrollIntoView({ behavior: "smooth" });
       }, 100);
@@ -749,18 +748,6 @@ export default function NotebookApp({
   }, [leftNotebookPage, notebookTab, rightNotebookPage]);
   const appsScriptWebAppUrl =
     process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || "";
-  const googleSheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "";
-  const googleDriveFolderUrl =
-    process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FOLDER_URL ||
-    notebookSettings.googleDriveFolderUrl ||
-    "https://drive.google.com/";
-  const upcomingTrainingsUrl =
-    process.env.NEXT_PUBLIC_UPCOMING_TRAININGS_URL ||
-    notebookSettings.upcomingTrainingsUrl ||
-    "https://www.ceali.org";
-  const googleAnalyticsUrl =
-    process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_URL ||
-    "https://analytics.google.com/";
 
   function openNotebook() {
     if (notebookOpened || coverAnimating) {
@@ -831,109 +818,79 @@ export default function NotebookApp({
   return (
     <div className="app-shell">
       <a className="skip-link" href="#registration">
-        Skip to registration
+        Skip to registration form
       </a>
       <header className="topbar">
         <div className="topbar-inner">
-          <a className="brand" href="#">
-            <span className="brand-mark">C</span>
+          <a className="brand" href="#home">
+            <Image
+              alt="Childcare Excellence Association logo"
+              className="brand-logo-image"
+              height={44}
+              src={CEALI_LOGO_SRC}
+              unoptimized
+              width={95}
+            />
             <span className="brand-text">
               <strong>CEALI</strong>
-              <span>Digital Resource Notebook</span>
+              <span>Digital Training Notebook</span>
             </span>
           </a>
           <nav aria-label="Primary" className="nav-links">
-            <a href="#registration">Register</a>
-            <a href="#notebook">Notebook</a>
-            <a href="#resources">Resources</a>
-            <a href="#admin">Admin</a>
+            <a href="#home">Home</a>
+            <a href={hasNotebookAccess ? "#notebook" : "#registration"}>
+              Digital Notebook
+            </a>
+            <a href="https://www.ceali.org">CEALI Website</a>
           </nav>
         </div>
       </header>
 
       <main>
-        <section className="hero">
-          <div className="hero-inner">
-            <div className="hero-main">
+        <section className="hero participant-hero" id="home">
+          <div className="participant-hero-inner">
+            <div className="participant-hero-copy">
+              <Image
+                alt="Childcare Excellence Association logo"
+                className="hero-logo-image"
+                height={104}
+                priority
+                src={CEALI_LOGO_SRC}
+                unoptimized
+                width={224}
+              />
               <div>
-                <p className="eyebrow">Conference Participant Access</p>
+                <p className="eyebrow">CEALI Digital Training Notebook</p>
                 <h1>Having Tough Conversations</h1>
               </div>
               <p className="hero-copy">
-                Resource notebook for families of children who require additional
-                support, created for early childhood educators and child care
-                providers.
+                Access training tools, templates, handouts, and word banks for
+                respectful family conversations in early childhood settings.
               </p>
               <div className="hero-actions">
                 <a className="button button-primary" href="#registration">
-                  Access Training Materials
+                  Open Digital Notebook
                   <ArrowRightIcon size={18} />
                 </a>
-                <a className="button button-light" href="https://www.ceali.org">
-                  CEALI Website
-                </a>
               </div>
             </div>
-            <aside className="hero-qr-card" aria-label="Conference QR code">
-              <Image
-                alt="QR code linking to the CEALI digital training notebook"
-                height={164}
-                src="/qr/ceali-notebook-qr.svg"
-                unoptimized
-                width={164}
-              />
-              <strong>Scan for materials</strong>
-              <span>Place this QR code on slides or signage for quick access.</span>
+            <aside
+              aria-label="Digital notebook preview"
+              className="landing-notebook-preview"
+            >
+              <PremiumCoverContent compact />
             </aside>
           </div>
         </section>
 
-        <section className="section-band alt">
+        <section className="section-band registration-section" id="registration">
           <div className="section-inner intro-grid">
             <div>
-              <p className="section-kicker">Welcome</p>
-              <h2 className="section-title">A practical packet for careful, respectful family conversations.</h2>
+              <p className="section-kicker">Registration</p>
+              <h2 className="section-title">Register to open your notebook.</h2>
               <p className="body-copy">
-                This notebook gathers the observation templates, planning tools,
-                referral resources, and professional word banks from the CEALI
-                training session into one searchable digital portal.
-              </p>
-              <div className="stats-strip" aria-label="Notebook contents">
-                <div className="stat">
-                  <strong>{handoutResources.length}</strong>
-                  <span>handout and template files</span>
-                </div>
-                <div className="stat">
-                  <strong>{appendixResources.length}</strong>
-                  <span>appendix word-bank files</span>
-                </div>
-                <div className="stat">
-                  <strong>400+</strong>
-                  <span>conference-ready attendees</span>
-                </div>
-              </div>
-            </div>
-            <aside className="bio-panel" aria-label="Presenter bio">
-              <p className="section-kicker">Presenter</p>
-              <h2>CEALI Training Team</h2>
-              <p className="body-copy">
-                CEALI provides professional development, resources, and support
-                for early childhood educators, child care programs, and leaders
-                committed to inclusive, family-centered practice.
-              </p>
-            </aside>
-          </div>
-        </section>
-
-        <section className="section-band" id="registration">
-          <div className="section-inner intro-grid">
-            <div>
-              <p className="section-kicker">Step 1</p>
-              <h2 className="section-title">Register once to unlock the notebook.</h2>
-              <p className="body-copy">
-                Your information helps CEALI share future training
-                opportunities, coaching, consulting services, courses, events,
-                and professional resources.
+                Complete this quick form once to unlock today&apos;s digital
+                training materials.
               </p>
             </div>
             <form className="form-panel" onSubmit={submitRegistration}>
@@ -1326,145 +1283,11 @@ export default function NotebookApp({
           </div>
         </section>
 
-        <section className="section-band" id="additional-resources">
-          <div className="section-inner">
-            <p className="section-kicker">Step 3</p>
-            <h2 className="section-title">Additional Resources</h2>
-            <div className="resource-links" id="resources">
-              <a className="resource-link" href="https://www.ceali.org">
-                <strong>
-                  <LinkIcon size={18} />
-                  CEALI Website
-                </strong>
-                <span>www.ceali.org</span>
-              </a>
-              <a className="resource-link" href={upcomingTrainingsUrl}>
-                <strong>
-                  <LinkIcon size={18} />
-                  Upcoming Trainings
-                </strong>
-                <span>Future CEALI events, courses, coaching, and professional development.</span>
-              </a>
-              <a className="resource-link" href={googleDriveFolderUrl}>
-                <strong>
-                  <LinkIcon size={18} />
-                  Google Drive Folder
-                </strong>
-                <span>Central storage folder for notebook PDFs and future updates.</span>
-              </a>
-              <a
-                className="resource-link"
-                href="https://www.instagram.com/ceali.ny/"
-              >
-                <strong>
-                  <LinkIcon size={18} />
-                  Instagram
-                </strong>
-                <span>@ceali.ny</span>
-              </a>
-              <a className="resource-link" href="tel:6315160010">
-                <strong>
-                  <PhoneIcon size={18} />
-                  Contact
-                </strong>
-                <span>631-516-0010</span>
-              </a>
-            </div>
-            <div className="resource-section">
-              <div className="section-heading-row">
-                <h3>Conference QR Code</h3>
-                <span>Print or project for participants</span>
-              </div>
-              <div className="qr-wrap">
-                <Image
-                  alt="QR code linking to the CEALI digital resource notebook"
-                  height={128}
-                  src="/qr/ceali-notebook-qr.svg"
-                  unoptimized
-                  width={128}
-                />
-                <a
-                  className="button button-light"
-                  href="/qr/ceali-notebook-qr.svg"
-                  download
-                >
-                  <DownloadIcon size={17} />
-                  Download QR
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section-band alt" id="admin">
-          <div className="section-inner admin-panel">
-            <p className="section-kicker">Admin</p>
-            <h2 className="section-title">Lead Management</h2>
-            <p className="body-copy">
-              Open the registration Sheet, export contacts through Apps Script,
-              and review visitor, registration, view, and download activity in
-              Google Analytics.
-            </p>
-            <div className="admin-grid">
-              <label>
-                <span className="sr-only">Admin key</span>
-                <input
-                  className="admin-input"
-                  onChange={(event) => setAdminKey(event.target.value)}
-                  placeholder="Admin export key"
-                  type="password"
-                  value={adminKey}
-                />
-              </label>
-              <a className="button button-light" href={googleAnalyticsUrl}>
-                <LinkIcon size={17} />
-                Open Analytics
-              </a>
-              {googleSheetUrl ? (
-                <a className="button button-light" href={googleSheetUrl}>
-                  <LinkIcon size={17} />
-                  Open Sheet
-                </a>
-              ) : null}
-              <a
-                className="button button-dark"
-                onClick={(event) => {
-                  if (!adminKey) {
-                    event.preventDefault();
-                    setAdminStatus("Enter the admin export key before downloading CSV.");
-                  }
-                }}
-                href={`/api/admin/contacts.csv?key=${encodeURIComponent(adminKey)}`}
-              >
-                <DownloadIcon size={17} />
-                Export CSV
-              </a>
-            </div>
-            {adminStatus ? <p className="form-message success">{adminStatus}</p> : null}
-            <div className="analytics-grid">
-              <div className="analytics-tile">
-                <strong>Apps Script</strong>
-                <span>Registration posts and CSV exports</span>
-              </div>
-              <div className="analytics-tile">
-                <strong>Drive</strong>
-                <span>PDF storage and replacements</span>
-              </div>
-              <div className="analytics-tile">
-                <strong>GA4</strong>
-                <span>Visitors, views, downloads</span>
-              </div>
-              <div className="analytics-tile">
-                <strong>Vercel</strong>
-                <span>Fast mobile delivery for 400+ attendees</span>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <footer className="footer">
-        CEALI training materials are provided for registered conference
-        participants.
+        <span>CEALI training materials are provided for registered conference participants.</span>
+        <a href="https://www.ceali.org">www.ceali.org</a>
+        <a href="tel:6315160010">631-516-0010</a>
       </footer>
     </div>
   );
